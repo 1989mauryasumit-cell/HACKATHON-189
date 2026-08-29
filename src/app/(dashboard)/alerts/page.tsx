@@ -29,11 +29,13 @@ interface Alert {
   severity: 'critical' | 'high' | 'medium' | 'low';
   title: string;
   explanation: string;
+  description?: string; // Database fallback description field
   entity_ids: string[];
   evidence: string[];
   confidence: number;
   status: 'new' | 'investigating' | 'resolved' | 'dismissed';
   detected_at: string;
+  created_at?: string; // Database fallback timestamp
 }
 
 export default function AlertsPage() {

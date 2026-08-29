@@ -94,7 +94,7 @@ export class RiskEngine {
       const db = MockDatabase.load();
       metrics = db.entity_metrics || [];
     } else {
-      const { data } = await DatabaseClient.supabase!.from("entity_metrics").select("*");
+      const { data } = await supabase!.from("entity_metrics").select("*");
       metrics = data || [];
     }
 
@@ -124,7 +124,7 @@ export class RiskEngine {
         }
         MockDatabase.save(db);
       } else {
-        await DatabaseClient.supabase!
+        await supabase!
           .from("entities")
           .update({
             risk_score: breakdown.score,

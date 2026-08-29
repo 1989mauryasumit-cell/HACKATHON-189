@@ -11,7 +11,7 @@ const ai = isGeminiAvailable ? new GoogleGenerativeAI(API_KEY) : null;
 
 export interface ExtractedEntity {
   name: string;
-  type: 'person' | 'organization' | 'location' | 'vehicle' | 'event' | 'bank_account';
+  type: 'person' | 'phone' | 'organization' | 'location' | 'vehicle' | 'event' | 'bank_account';
   attributes: Record<string, any>;
   confidence: number;
   char_start: number;

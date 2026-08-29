@@ -35,6 +35,7 @@ import {
   Loader2
 } from "lucide-react";
 import { getClientSession, setClientSession, logAuditEvent, Role } from "@/lib/auth";
+import { DatabaseClient } from "@/lib/supabase";
 
 type NavItem = {
   name: string;

@@ -7,7 +7,7 @@ const LIMIT = 60; // 60 requests
 const WINDOW = 60 * 1000; // 1 minute window
 
 export function middleware(request: NextRequest) {
-  const ip = request.ip || request.headers.get("x-forwarded-for") || "local-ip";
+  const ip = (request as any).ip || request.headers.get("x-forwarded-for") || "local-ip";
   const path = request.nextUrl.pathname;
 
   // 1. Enforce API Rate Limiting

@@ -17,7 +17,7 @@ import {
   ExternalLink,
   ChevronLeft
 } from "lucide-react";
-import { DatabaseClient, isDegradedMode } from "@/lib/supabase";
+import { DatabaseClient, isDegradedMode, supabase } from "@/lib/supabase";
 import { MockDatabase } from "@/lib/mock-db";
 import Link from "next/link";
 
@@ -48,7 +48,7 @@ export default function EntityProfilePage({ params }: PageProps) {
         const db = MockDatabase.load();
         met = db.entity_metrics?.find(m => m.entity_id === id);
       } else {
-        const { data } = await DatabaseClient.supabase!
+        const { data } = await supabase!
           .from("entity_metrics")
           .select("*")
           .eq("entity_id", id)

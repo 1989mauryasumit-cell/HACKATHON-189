@@ -2,8 +2,11 @@ let fs: any = null;
 let path: any = null;
 
 if (typeof window === "undefined") {
-  fs = require("fs");
-  path = require("path");
+  // Hide server-only requires from Webpack compile-time static analysis
+  const fsName = "fs";
+  const pathName = "path";
+  fs = require(fsName);
+  path = require(pathName);
 }
 
 // Define local interfaces for the schema
@@ -28,7 +31,7 @@ export interface Entity {
   aliases: string[];
   attributes: Record<string, any>;
   risk_score: number;
-  risk_breakdown: Record<string, number>;
+  risk_breakdown: Record<string, any>;
   is_verified: boolean;
   merged_into_id?: string;
   created_at: string;
@@ -48,6 +51,7 @@ export interface Relationship {
   evidence: string[]; // document ids
   inference_method: 'extracted' | 'predicted' | 'manual';
   status: 'ai_suggested' | 'confirmed' | 'rejected';
+  deleted_at?: string; // Support deletion filtering
   created_at: string;
 }
 
@@ -57,11 +61,13 @@ export interface Alert {
   severity: 'low' | 'medium' | 'high' | 'critical';
   title: string;
   explanation: string;
+  description?: string; // Database fallback description field
   entity_ids: string[];
   evidence: string[]; // document ids
   confidence: number;
   status: 'new' | 'acknowledged' | 'investigating' | 'dismissed' | 'escalated';
   detected_at: string;
+  created_at?: string; // Database fallback timestamp
 }
 
 export interface EntityMetrics {

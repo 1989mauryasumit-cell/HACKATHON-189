@@ -118,7 +118,7 @@ export default function TimelinePage() {
     if (timeResolution === "daily") {
       // 7 dynamic daily buckets spanning the investigation range
       const bucketSize = (maxTime - minTime) / 7;
-      const buckets = [];
+      const buckets: any[] = [];
       for (let i = 0; i < 7; i++) {
         const d = new Date(minTime + i * bucketSize);
         const label = `${d.getDate()}/${d.getMonth() + 1}`;
@@ -144,7 +144,7 @@ export default function TimelinePage() {
     } else if (timeResolution === "weekly") {
       // 4 dynamic weekly buckets spanning the range
       const bucketSize = (maxTime - minTime) / 4;
-      const buckets = [];
+      const buckets: any[] = [];
       for (let i = 0; i < 4; i++) {
         const start = new Date(minTime + i * bucketSize);
         const end = new Date(minTime + (i + 1) * bucketSize);

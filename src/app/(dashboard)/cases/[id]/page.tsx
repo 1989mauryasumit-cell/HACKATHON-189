@@ -18,6 +18,7 @@ import {
   Bookmark
 } from "lucide-react";
 import { DatabaseClient, isDegradedMode } from "@/lib/supabase";
+import { getClientSession } from "@/lib/auth";
 import { MockDatabase } from "@/lib/mock-db";
 import { logAuditEvent } from "@/lib/auth";
 import Link from "next/link";
@@ -39,7 +40,7 @@ export default function CaseDetailPage({ params }: PageProps) {
   const [userSession, setUserSession] = React.useState<any | null>(null);
   
   React.useEffect(() => {
-    setUserSession(DatabaseClient.getClientSession());
+    setUserSession(getClientSession());
   }, []);
   
   const isViewer = userSession?.role === "viewer";

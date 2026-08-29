@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NetworkGraphCanvas } from "@/components/network-graph-canvas";
-import { DatabaseClient, isDegradedMode } from "@/lib/supabase";
+import { DatabaseClient, isDegradedMode, supabase } from "@/lib/supabase";
 import {
   Network,
   Filter,
@@ -65,7 +65,7 @@ export default function NetworkGraphPage() {
         const db = MockDatabase.load();
         mets = db.entity_metrics || [];
       } else {
-        const { data } = await DatabaseClient.supabase!.from("entity_metrics").select("*");
+        const { data } = await supabase!.from("entity_metrics").select("*");
         mets = data || [];
       }
 

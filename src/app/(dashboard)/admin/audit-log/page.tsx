@@ -13,7 +13,7 @@ import {
   Clock,
   UserCheck
 } from "lucide-react";
-import { DatabaseClient, isDegradedMode } from "@/lib/supabase";
+import { DatabaseClient, isDegradedMode, supabase } from "@/lib/supabase";
 import { MockDatabase } from "@/lib/mock-db";
 
 interface AuditLogEntry {
@@ -38,9 +38,19 @@ export default function AuditLogPage() {
       let data: AuditLogEntry[] = [];
       if (isDegradedMode) {
         const db = MockDatabase.load();
-        data = db.audit_logs || [];
+        // Map local Mock DB audit logs format to match screen interface
+        data = (db.audit_logs || []).map((l: any) => ({
+          id: l.id,
+          user_id: l.user_id,
+          badge_id: l.user_id === "usr-admin" ? "POL-9999" : "POL-7777",
+          action_type: l.action,
+          target_table: l.target_type,
+          target_id: l.target_id,
+          changed_fields: l.details,
+          created_at: l.created_at
+        }));
       } else {
-        const { data: list, error } = await DatabaseClient.supabase!
+        const { data: list, error } = await supabase!
           .from("audit_logs")
           .select("*")
           .order("created_at", { ascending: false });
