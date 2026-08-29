@@ -1,0 +1,48 @@
+{
+  "planted_entities": [
+    { "id": "kp-01", "name": "Devendra Maurya", "type": "person", "role": "kingpin", "alias": "Don", "phone": "+91 99100 88201", "vehicle": "DL-1C-AA-9999", "account": "1010099201" },
+    { "id": "lt-01", "name": "Vikram Jagtap", "type": "person", "role": "lieutenant", "alias": "Vicky", "phone": "+91 98200 77102", "vehicle": "MH-12-BB-8888", "account": "1010099202" },
+    { "id": "lt-02", "name": "Sandeep Yadav", "type": "person", "role": "lieutenant", "alias": "Sandy", "phone": "+91 95600 66303", "vehicle": "UP-32-CC-7777", "account": "1010099203" },
+    { "id": "ml-01", "name": "Ramesh Patel", "type": "person", "role": "money_mule", "alias": "Mule", "phone": "+91 94260 55404", "vehicle": "GJ-01-XX-1111", "account": "2020044505" },
+    { "id": "bk-01", "name": "Arjun Sen", "type": "person", "role": "broker", "alias": "Linker", "phone": "+91 98300 44505", "vehicle": "WB-02-ZZ-2222", "account": "1010099205" },
+    { "id": "ci-01", "name": "Vijay Shinde", "type": "person", "role": "corrupt_insider", "alias": "SI Shinde", "phone": "+91 90040 33606", "vehicle": "MH-01-AA-0100", "account": "1010099206" },
+    { "id": "pm-01", "name": "Sanjay Dutt", "type": "person", "role": "peripheral", "phone": "+91 98111 00001" },
+    { "id": "pm-02", "name": "Anil Kapoor", "type": "person", "role": "peripheral", "phone": "+91 98111 00002" },
+    { "id": "pm-03", "name": "Sunil Shetty", "type": "person", "role": "peripheral", "phone": "+91 98111 00003" },
+    { "id": "pm-04", "name": "Jackie Shroff", "type": "person", "role": "peripheral", "phone": "+91 98111 00004" },
+    { "id": "pm-05", "name": "Nana Patekar", "type": "person", "role": "peripheral", "phone": "+91 98111 00005" },
+    { "id": "pm-06", "name": "Govinda Ahuja", "type": "person", "role": "peripheral", "phone": "+91 98111 00006" },
+    { "id": "pm-07", "name": "Johnny Lever", "type": "person", "role": "peripheral", "phone": "+91 98111 00007" },
+    { "id": "pm-08", "name": "Paresh Rawal", "type": "person", "role": "peripheral", "phone": "+91 98111 00008" },
+    { "id": "pm-09", "name": "Kader Khan", "type": "person", "role": "peripheral", "phone": "+91 98111 00009" },
+    { "id": "pm-10", "name": "Shakti Kapoor", "type": "person", "role": "peripheral", "phone": "+91 98111 00010" },
+    { "id": "pm-11", "name": "Gulshan Grover", "type": "person", "role": "peripheral", "phone": "+91 98111 00011" },
+    { "id": "pm-12", "name": "Amrish Puri", "type": "person", "role": "peripheral", "phone": "+91 98111 00012" },
+    { "id": "pm-13", "name": "Danny Denzongpa", "type": "person", "role": "peripheral", "phone": "+91 98111 00013" },
+    { "id": "pm-14", "name": "Prem Chopra", "type": "person", "role": "peripheral", "phone": "+91 98111 00014" },
+    { "id": "pm-15", "name": "Ranjeet Bedi", "type": "person", "role": "peripheral", "phone": "+91 98111 00015" }
+  ],
+  "planted_relationships": [
+    { "source": "Devendra Maurya", "target": "Vikram Jagtap", "type": "associate_of" },
+    { "source": "Devendra Maurya", "target": "Arjun Sen", "type": "associate_of" },
+    { "source": "Vikram Jagtap", "target": "Arjun Sen", "type": "associate_of" },
+    { "source": "Arjun Sen", "target": "Sandeep Yadav", "type": "associate_of" },
+    { "source": "Sandeep Yadav", "target": "Vijay Shinde", "type": "associate_of" },
+    { "source": "Devendra Maurya", "target": "Ramesh Patel", "type": "transacted_with" },
+    { "source": "Ramesh Patel", "target": "Vijay Shinde", "type": "transacted_with" }
+  ],
+  "planted_patterns": [
+    { "pattern_type": "structuring", "description": "Ramesh Patel transfers multiple amounts of ₹49,500 to sub-inspector Shinde to bypass ₹50,000 PAN limit." },
+    { "pattern_type": "burner_phone", "description": "Sanjay Dutt uses a phone active for only 4 days with 90% calls directed to Vikram Jagtap." },
+    { "pattern_type": "communication_spike", "description": "Amit Maurya and Vicky Jagtap call count surges 5x in the 3 hours preceding Maurya's arrest date." },
+    { "pattern_type": "bridge_node", "description": "Arjun Sen connects Devendra Maurya's Cell A and Sandeep Yadav's Cell B with high betweenness centrality." },
+    { "pattern_type": "circular_money_flow", "description": "Funds flow from Maurya -> Ramesh Patel -> Vijay Shinde -> Devendra Maurya." },
+    { "pattern_type": "rapid_pass_through", "description": "Ramesh Patel's account receives ₹10,00,000 and dispatches it in ₹2,00,000 tranches within 45 minutes." },
+    { "pattern_type": "geographic_co_location", "description": "Maurya and Jagtap co-locate at Connaught Place tower sector 3 during drug drop-off timeline." },
+    { "pattern_type": "dormant_then_active", "description": "Prem Chopra's SIM dormant for 120 days, suddenly places 145 calls in 48 hours." },
+    { "pattern_type": "shared_identifier", "description": "Danny Denzongpa and Shakti Kapoor register different cases using the same phone number +91 98111 00010." },
+    { "pattern_type": "unusual_hours", "description": "Amrish Puri makes calls and bank transfers exclusively between 01:00 AM and 03:30 AM." },
+    { "pattern_type": "network_growth_anomaly", "description": "Sunil Shetty adds 42 unique phone contacts within a 24-hour period." },
+    { "pattern_type": "community_bridging", "description": "Arjun Sen maintains links connecting Cell A, Cell B, and Cell C (financial mules)." }
+  ]
+}

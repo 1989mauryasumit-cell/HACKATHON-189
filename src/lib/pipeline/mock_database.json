@@ -1,0 +1,380 @@
+{
+  "cases": [
+    {
+      "id": "c-01",
+      "case_number": "FIR-2026-DEL-092",
+      "title": "Maurya Drug Syndicate Operations",
+      "description": "Investigation into cross-border drug distribution and money laundering channels led by Devendra Maurya.",
+      "status": "active",
+      "priority": "critical",
+      "assigned_to": "investigator@agency.gov.in",
+      "opened_at": "2026-03-12T10:00:00Z",
+      "created_at": "2026-03-12T10:00:00Z"
+    },
+    {
+      "id": "c-reach-01",
+      "case_number": "FIR-2022-GA-084",
+      "title": "Margrave Counterfeiting Case",
+      "description": "Investigation into systemic counterfeiting operations under Kliner Foundation, linked to murder of Ex-MP Joe Reacher and local Margrave GA homicides.",
+      "status": "active",
+      "priority": "critical",
+      "assigned_to": "jack.reacher@agency.gov.in",
+      "opened_at": "2026-08-28T15:48:46.452Z",
+      "created_at": "2026-08-28T15:48:46.452Z"
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc-reach-001",
+      "source_type": "fir",
+      "title": "Margrave Homicide Report - FIR-2022-GA-084",
+      "raw_text": "On 2026-08-28, the body of Joe Reacher was found near the Margrave Underpass. Chief Oscar Finlay and Officer Roscoe Conklin are lead investigators alongside Jack Reacher. A suspect vehicle, a black Bentley with plate GA-04-XX-4444, was spotted nearby. Burner phone number +91 92203 44502 triggered cell tower pings at the underpass coordinate during the homicide window.",
+      "file_hash": "hash_reach_001",
+      "file_size": 256,
+      "mime_type": "text/plain",
+      "status": "processed",
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "doc-reach-002",
+      "source_type": "transaction",
+      "title": "Kliner Foundation Cash Structuring Ledger",
+      "raw_text": "Audit of Kliner Foundation financial ledgers reveals multiple cash wire transfers in Margrave to banker Paul Hubble. Transfers are structured in increments of Rs 45,000 to bypass structuring limits. Hubble has been coordinating with KJ Kliner.",
+      "file_hash": "hash_reach_002",
+      "file_size": 312,
+      "mime_type": "text/plain",
+      "status": "processed",
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "doc-reach-003",
+      "source_type": "cdr",
+      "title": "Burner Phone CDR Intercept Logs",
+      "raw_text": "Call detail records (CDR) show phone calls between burner SIM +91 92203 44502 and Paul Hubble's personal device, peaking during the time of the Margrave counterfeiting operations under KJ Kliner, monitored by Oscar Finlay and Jack Reacher.",
+      "file_hash": "hash_reach_003",
+      "file_size": 198,
+      "mime_type": "text/plain",
+      "status": "processed",
+      "created_at": "2026-08-28T15:48:46.452Z"
+    }
+  ],
+  "entities": [
+    {
+      "id": "ent-reach-001",
+      "entity_type": "person",
+      "canonical_name": "Jack Reacher",
+      "aliases": [
+        "Ex-Military MP"
+      ],
+      "attributes": {
+        "role": "Lead Investigator",
+        "origin": "US Army"
+      },
+      "risk_score": 55,
+      "risk_breakdown": {
+        "centrality": 30,
+        "homicide_link": 25
+      },
+      "is_verified": true,
+      "created_at": "2026-08-28T15:48:46.452Z",
+      "updated_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "ent-reach-002",
+      "entity_type": "person",
+      "canonical_name": "Oscar Finlay",
+      "aliases": [
+        "Chief Finlay"
+      ],
+      "attributes": {
+        "role": "Chief of Detectives",
+        "department": "Margrave PD"
+      },
+      "risk_score": 30,
+      "risk_breakdown": {
+        "centrality": 20,
+        "homicide_link": 10
+      },
+      "is_verified": true,
+      "created_at": "2026-08-28T15:48:46.452Z",
+      "updated_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "ent-reach-003",
+      "entity_type": "person",
+      "canonical_name": "Roscoe Conklin",
+      "aliases": [
+        "Officer Conklin"
+      ],
+      "attributes": {
+        "role": "Patrol Officer",
+        "department": "Margrave PD"
+      },
+      "risk_score": 20,
+      "risk_breakdown": {
+        "centrality": 10,
+        "homicide_link": 10
+      },
+      "is_verified": true,
+      "created_at": "2026-08-28T15:48:46.452Z",
+      "updated_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "ent-reach-004",
+      "entity_type": "person",
+      "canonical_name": "KJ Kliner",
+      "aliases": [
+        "Kliner Jr"
+      ],
+      "attributes": {
+        "role": "Syndicate Boss",
+        "org": "Kliner Foundation"
+      },
+      "risk_score": 95,
+      "risk_breakdown": {
+        "centrality": 50,
+        "laundering_link": 45
+      },
+      "is_verified": true,
+      "created_at": "2026-08-28T15:48:46.452Z",
+      "updated_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "ent-reach-005",
+      "entity_type": "person",
+      "canonical_name": "Paul Hubble",
+      "aliases": [
+        "Hubble the Banker"
+      ],
+      "attributes": {
+        "role": "Syndicate Banker",
+        "company": "Margrave Bank"
+      },
+      "risk_score": 75,
+      "risk_breakdown": {
+        "centrality": 40,
+        "laundering_link": 35
+      },
+      "is_verified": true,
+      "created_at": "2026-08-28T15:48:46.452Z",
+      "updated_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "ent-reach-006",
+      "entity_type": "phone",
+      "canonical_name": "+91 92203 44502",
+      "aliases": [
+        "Burner SIM"
+      ],
+      "attributes": {
+        "owner": "KJ Kliner",
+        "carrier": "Zenith Telecom"
+      },
+      "risk_score": 85,
+      "risk_breakdown": {
+        "co_location": 45,
+        "frequency": 40
+      },
+      "is_verified": true,
+      "created_at": "2026-08-28T15:48:46.452Z",
+      "updated_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "ent-reach-007",
+      "entity_type": "vehicle",
+      "canonical_name": "GA-04-XX-4444",
+      "aliases": [
+        "Black Bentley"
+      ],
+      "attributes": {
+        "registered_owner": "KJ Kliner",
+        "model": "Bentley Continental"
+      },
+      "risk_score": 80,
+      "risk_breakdown": {
+        "homicide_presence": 50,
+        "owner_link": 30
+      },
+      "is_verified": true,
+      "created_at": "2026-08-28T15:48:46.452Z",
+      "updated_at": "2026-08-28T15:48:46.452Z"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel-reach-001",
+      "source_entity_id": "ent-reach-001",
+      "target_entity_id": "ent-reach-002",
+      "relation_type": "called",
+      "weight": 1.0,
+      "confidence": 0.95,
+      "occurrence_count": 5,
+      "evidence": [
+        "doc-reach-001"
+      ],
+      "inference_method": "extracted",
+      "status": "confirmed",
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "rel-reach-002",
+      "source_entity_id": "ent-reach-001",
+      "target_entity_id": "ent-reach-003",
+      "relation_type": "called",
+      "weight": 1.0,
+      "confidence": 0.95,
+      "occurrence_count": 8,
+      "evidence": [
+        "doc-reach-001"
+      ],
+      "inference_method": "extracted",
+      "status": "confirmed",
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "rel-reach-003",
+      "source_entity_id": "ent-reach-005",
+      "target_entity_id": "ent-reach-006",
+      "relation_type": "called",
+      "weight": 2.0,
+      "confidence": 0.9,
+      "occurrence_count": 14,
+      "evidence": [
+        "doc-reach-003"
+      ],
+      "inference_method": "extracted",
+      "status": "confirmed",
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "rel-reach-004",
+      "source_entity_id": "ent-reach-004",
+      "target_entity_id": "ent-reach-007",
+      "relation_type": "owns",
+      "weight": 1.0,
+      "confidence": 0.99,
+      "occurrence_count": 1,
+      "evidence": [
+        "doc-reach-001"
+      ],
+      "inference_method": "extracted",
+      "status": "confirmed",
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "rel-reach-005",
+      "source_entity_id": "ent-reach-006",
+      "target_entity_id": "ent-reach-005",
+      "relation_type": "transacted_with",
+      "weight": 1.0,
+      "confidence": 0.85,
+      "occurrence_count": 4,
+      "evidence": [
+        "doc-reach-002"
+      ],
+      "inference_method": "extracted",
+      "status": "confirmed",
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "rel-reach-006",
+      "source_entity_id": "ent-reach-004",
+      "target_entity_id": "ent-reach-006",
+      "relation_type": "owns",
+      "weight": 1.0,
+      "confidence": 0.99,
+      "occurrence_count": 1,
+      "evidence": [
+        "doc-reach-001"
+      ],
+      "inference_method": "extracted",
+      "status": "confirmed",
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "id": "rel-reach-007",
+      "source_entity_id": "ent-reach-002",
+      "target_entity_id": "ent-reach-003",
+      "relation_type": "called",
+      "weight": 1.0,
+      "confidence": 0.95,
+      "occurrence_count": 6,
+      "evidence": [
+        "doc-reach-001"
+      ],
+      "inference_method": "extracted",
+      "status": "confirmed",
+      "created_at": "2026-08-28T15:48:46.452Z"
+    }
+  ],
+  "alerts": [
+    {
+      "id": "alt-reach-001",
+      "alert_type": "centrality_spike",
+      "severity": "critical",
+      "title": "Counterfeiting Counter-Linkage Alert",
+      "explanation": "Counterfeit operations link identifies KJ Kliner as the owner of burner +91 92203 44502 active during the Margrave homicides and wire-called by banker Paul Hubble.",
+      "entity_ids": [
+        "ent-reach-004",
+        "ent-reach-006",
+        "ent-reach-007"
+      ],
+      "evidence": [
+        "doc-reach-001",
+        "doc-reach-002",
+        "doc-reach-003"
+      ],
+      "confidence": 0.95,
+      "status": "new",
+      "detected_at": "2026-08-28T15:48:46.452Z"
+    }
+  ],
+  "entity_metrics": [
+    {
+      "entity_id": "ent-reach-001",
+      "pagerank": 0.1542,
+      "betweenness": 0.2,
+      "closeness": 0.4,
+      "degree": 2,
+      "community_id": 1,
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "entity_id": "ent-reach-002",
+      "pagerank": 0.0821,
+      "betweenness": 0.1,
+      "closeness": 0.3,
+      "degree": 2,
+      "community_id": 1,
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "entity_id": "ent-reach-003",
+      "pagerank": 0.0821,
+      "betweenness": 0.1,
+      "closeness": 0.3,
+      "degree": 2,
+      "community_id": 1,
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "entity_id": "ent-reach-004",
+      "pagerank": 0.4561,
+      "betweenness": 0.8,
+      "closeness": 0.9,
+      "degree": 2,
+      "community_id": 2,
+      "created_at": "2026-08-28T15:48:46.452Z"
+    },
+    {
+      "entity_id": "ent-reach-005",
+      "pagerank": 0.2521,
+      "betweenness": 0.4,
+      "closeness": 0.7,
+      "degree": 2,
+      "community_id": 2,
+      "created_at": "2026-08-28T15:48:46.452Z"
+    }
+  ],
+  "audit_logs": []
+}
