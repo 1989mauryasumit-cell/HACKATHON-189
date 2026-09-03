@@ -26,15 +26,6 @@ export async function POST() {
 }
 
 export async function GET() {
-  try {
-    const { generateDatabase } = require("@/lib/pipeline/synthetic-generator");
-    const dump = generateDatabase();
-    return NextResponse.json(dump);
-  } catch (error: any) {
-    console.error("Failed to serve demo data:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to serve demo data" },
-      { status: 500 }
-    );
-  }
+  const { EMPTY_DB } = require("@/lib/mock-db");
+  return NextResponse.json(EMPTY_DB);
 }

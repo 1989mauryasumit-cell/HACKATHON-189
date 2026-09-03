@@ -132,24 +132,24 @@ export function NavigationShell({ children }: { children: React.ReactNode }) {
     }
   }, [router, pathname]);
 
-  // Auto-sync initial database only once if never visited
+  // One-time automatic purge of legacy Margrave browser cache on v2 upgrade
   React.useEffect(() => {
-    const autoSyncDatabase = async () => {
-      try {
-        const raw = localStorage.getItem("kraken_mock_db");
-        if (raw === null) {
-          // Initialize with static default mock data on very first fresh visit
-          const res = await fetch("/api/demo/load");
-          if (res.ok) {
-            const data = await res.json();
-            localStorage.setItem("kraken_mock_db", JSON.stringify(data.dbDump || data));
-          }
+    try {
+      const isClean = localStorage.getItem("kraken_v2_clean_slate_applied");
+      if (!isClean) {
+        const session = localStorage.getItem("kraken_session");
+        localStorage.clear();
+        if (session) {
+          localStorage.setItem("kraken_session", session);
         }
-      } catch (err) {
-        console.error("Initialization sync failed:", err);
+        localStorage.setItem("kraken_mock_db", JSON.stringify(EMPTY_DB));
+        localStorage.setItem("kraken_v2_clean_slate_applied", "true");
+        MockDatabase.clear();
+        window.location.reload();
       }
-    };
-    autoSyncDatabase();
+    } catch (err) {
+      console.error("Clean-slate migration error:", err);
+    }
   }, []);
 
   // Load all entities & alert counts for search typeahead in palette
