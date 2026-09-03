@@ -101,26 +101,24 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "clear" })
       });
-      MockDatabase.clear();
-      localStorage.setItem("kraken_mock_db", JSON.stringify(EMPTY_DB));
-      localStorage.removeItem("watchlists_data");
-      setStats({
-        entities: 0,
-        relationships: 0,
-        documents: 0,
-        alerts: 0,
-        cases: 0
-      });
-      window.location.reload();
     } catch (err: any) {
       console.error(err);
-      MockDatabase.clear();
-      localStorage.setItem("kraken_mock_db", JSON.stringify(EMPTY_DB));
-      localStorage.removeItem("watchlists_data");
-      window.location.reload();
-    } finally {
-      setLoading(null);
     }
+    const session = localStorage.getItem("kraken_session");
+    localStorage.clear();
+    if (session) {
+      localStorage.setItem("kraken_session", session);
+    }
+    localStorage.setItem("kraken_mock_db", JSON.stringify(EMPTY_DB));
+    MockDatabase.clear();
+    setStats({
+      entities: 0,
+      relationships: 0,
+      documents: 0,
+      alerts: 0,
+      cases: 0
+    });
+    window.location.reload();
   };
 
   return (

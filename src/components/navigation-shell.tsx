@@ -97,9 +97,13 @@ export function NavigationShell({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error(e);
     }
-    MockDatabase.clear();
+    const session = localStorage.getItem("kraken_session");
+    localStorage.clear();
+    if (session) {
+      localStorage.setItem("kraken_session", session);
+    }
     localStorage.setItem("kraken_mock_db", JSON.stringify(EMPTY_DB));
-    localStorage.removeItem("watchlists_data");
+    MockDatabase.clear();
     window.location.reload();
   };
 
