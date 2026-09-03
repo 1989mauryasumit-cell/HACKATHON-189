@@ -95,20 +95,15 @@ export default function DashboardPage() {
   const handleWipeAllData = async () => {
     setLoading("wipe");
     setMessage(null);
-    setShowWipeConfirm(false);
     try {
-      const res = await fetch("/api/demo/reset", {
+      await fetch("/api/demo/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "clear" })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to wipe database.");
-      
-      // Completely wipe local storage caches and memory
       MockDatabase.clear();
+      localStorage.setItem("kraken_mock_db", JSON.stringify(EMPTY_DB));
       localStorage.removeItem("watchlists_data");
-      
       setStats({
         entities: 0,
         relationships: 0,
@@ -116,11 +111,13 @@ export default function DashboardPage() {
         alerts: 0,
         cases: 0
       });
-
-      setMessage({ text: "All past data successfully deleted. Your workspace is now a completely clean slate with 0 records.", type: "success" });
-      setTimeout(() => window.location.reload(), 1000);
+      window.location.reload();
     } catch (err: any) {
-      setMessage({ text: err.message || "Network error wiping database.", type: "error" });
+      console.error(err);
+      MockDatabase.clear();
+      localStorage.setItem("kraken_mock_db", JSON.stringify(EMPTY_DB));
+      localStorage.removeItem("watchlists_data");
+      window.location.reload();
     } finally {
       setLoading(null);
     }

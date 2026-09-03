@@ -100,7 +100,7 @@ export function NavigationShell({ children }: { children: React.ReactNode }) {
     MockDatabase.clear();
     localStorage.setItem("kraken_mock_db", JSON.stringify(EMPTY_DB));
     localStorage.removeItem("watchlists_data");
-    window.location.href = "/";
+    window.location.reload();
   };
 
   // Live clock
