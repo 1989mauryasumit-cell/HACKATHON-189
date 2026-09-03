@@ -42,11 +42,13 @@ import {
   Phone,
   CreditCard,
   Car,
-  Trash2
+  Trash2,
+  Lock
 } from "lucide-react";
 import { getClientSession, setClientSession, logAuditEvent, Role } from "@/lib/auth";
 import { DatabaseClient } from "@/lib/supabase";
 import { MockDatabase, EMPTY_DB } from "@/lib/mock-db";
+import { AdminVaultService } from "@/lib/vault";
 
 type NavItem = {
   name: string;
@@ -73,7 +75,11 @@ export function NavigationShell({ children }: { children: React.ReactNode }) {
     name: string;
     role: Role;
     badgeId: string;
-  } | null>(null);
+  }>({
+    name: "Special Agent Vikram",
+    role: "admin",
+    badgeId: "NIA-8942-X"
+  });
 
   // Live count states
   const [alertCount, setAlertCount] = React.useState<number>(12);
@@ -97,13 +103,12 @@ export function NavigationShell({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error(e);
     }
-    const session = localStorage.getItem("kraken_session");
-    localStorage.clear();
-    if (session) {
-      localStorage.setItem("kraken_session", session);
-    }
-    localStorage.setItem("kraken_mock_db", JSON.stringify(EMPTY_DB));
-    MockDatabase.clear();
+    const session = getClientSession();
+    AdminVaultService.createSnapshotAndReset(
+      session?.full_name || "Administrator",
+      session?.badge_id || "ADM-001",
+      `Operational Backup — ${new Date().toLocaleDateString("en-IN")}`
+    );
     window.location.reload();
   };
 
@@ -223,6 +228,7 @@ export function NavigationShell({ children }: { children: React.ReactNode }) {
     {
       title: "GOVERNANCE & ADMIN",
       items: [
+        { name: "Admin Master Vault", href: "/admin/vault", icon: Lock, adminOnly: true },
         { name: "User Roster", href: "/admin/users", icon: Users, adminOnly: true },
         { name: "Audit Log Ledger", href: "/admin/audit-log", icon: History, supervisorOnly: true },
         { name: "System Settings", href: "/admin/settings", icon: Settings, adminOnly: true },

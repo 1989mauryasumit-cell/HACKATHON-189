@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { DatabaseClient, isDegradedMode } from "@/lib/supabase";
 import { MockDatabase, EMPTY_DB } from "@/lib/mock-db";
+import { AdminVaultService } from "@/lib/vault";
+import { getClientSession } from "@/lib/auth";
 
 export default function DashboardPage() {
   const [loading, setLoading] = React.useState<"load" | "wipe" | null>(null);
@@ -104,13 +106,12 @@ export default function DashboardPage() {
     } catch (err: any) {
       console.error(err);
     }
-    const session = localStorage.getItem("kraken_session");
-    localStorage.clear();
-    if (session) {
-      localStorage.setItem("kraken_session", session);
-    }
-    localStorage.setItem("kraken_mock_db", JSON.stringify(EMPTY_DB));
-    MockDatabase.clear();
+    const session = getClientSession();
+    AdminVaultService.createSnapshotAndReset(
+      session?.full_name || "Administrator",
+      session?.badge_id || "ADM-001",
+      `Operational Backup — ${new Date().toLocaleDateString("en-IN")}`
+    );
     setStats({
       entities: 0,
       relationships: 0,
