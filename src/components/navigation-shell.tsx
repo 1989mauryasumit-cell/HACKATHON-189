@@ -91,25 +91,37 @@ export function NavigationShell({ children }: { children: React.ReactNode }) {
   const [allEntities, setAllEntities] = React.useState<any[]>([]);
   const [resetting, setResetting] = React.useState(false);
 
-  const handleQuickReset = async () => {
+  const handleQuickReset = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (resetting) return;
     setResetting(true);
+
     try {
-      await fetch("/api/demo/reset", {
+      // 1. Instantly create snapshot in Admin Vault and wipe all local storage
+      const session = getClientSession();
+      AdminVaultService.createSnapshotAndReset(
+        session?.full_name || "Administrator",
+        session?.badge_id || "ADM-001",
+        `Operational Backup — ${new Date().toLocaleDateString("en-IN")}`
+      );
+
+      // 2. Fire server-side database wipe
+      fetch("/api/demo/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "clear" })
-      });
-    } catch (e) {
-      console.error(e);
+      }).catch(console.error);
+
+      // 3. Force hard refresh
+      window.location.reload();
+    } catch (err) {
+      console.error("Reset error:", err);
+      localStorage.clear();
+      window.location.reload();
     }
-    const session = getClientSession();
-    AdminVaultService.createSnapshotAndReset(
-      session?.full_name || "Administrator",
-      session?.badge_id || "ADM-001",
-      `Operational Backup — ${new Date().toLocaleDateString("en-IN")}`
-    );
-    window.location.reload();
   };
 
   // Live clock

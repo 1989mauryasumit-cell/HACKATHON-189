@@ -94,32 +94,42 @@ export default function DashboardPage() {
     }
   };
 
-  const handleWipeAllData = async () => {
+  const handleWipeAllData = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setLoading("wipe");
     setMessage(null);
+
     try {
-      await fetch("/api/demo/reset", {
+      const session = getClientSession();
+      AdminVaultService.createSnapshotAndReset(
+        session?.full_name || "Administrator",
+        session?.badge_id || "ADM-001",
+        `Operational Backup — ${new Date().toLocaleDateString("en-IN")}`
+      );
+
+      fetch("/api/demo/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "clear" })
+      }).catch(console.error);
+
+      setStats({
+        entities: 0,
+        relationships: 0,
+        documents: 0,
+        alerts: 0,
+        cases: 0
       });
-    } catch (err: any) {
-      console.error(err);
+
+      window.location.reload();
+    } catch (err) {
+      console.error("Wipe error:", err);
+      localStorage.clear();
+      window.location.reload();
     }
-    const session = getClientSession();
-    AdminVaultService.createSnapshotAndReset(
-      session?.full_name || "Administrator",
-      session?.badge_id || "ADM-001",
-      `Operational Backup — ${new Date().toLocaleDateString("en-IN")}`
-    );
-    setStats({
-      entities: 0,
-      relationships: 0,
-      documents: 0,
-      alerts: 0,
-      cases: 0
-    });
-    window.location.reload();
   };
 
   return (
