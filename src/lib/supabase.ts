@@ -124,10 +124,14 @@ export class DatabaseClient {
     return { success: true, count: dump.entities.length };
   }
 
-  // Reset database
-  public static async resetDatabase() {
+  // Reset / Clear database
+  public static async resetDatabase(mode: "clear" | "default" = "clear") {
     if (isDegradedMode) {
-      MockDatabase.reset();
+      if (mode === "clear") {
+        MockDatabase.clear();
+      } else {
+        MockDatabase.reset();
+      }
       return { success: true };
     }
     // Delete all rows in live Supabase tables
@@ -136,7 +140,9 @@ export class DatabaseClient {
     await supabase!.from("entities").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase!.from("documents").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase!.from("alerts").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await supabase!.from("cases").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase!.from("audit_log").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     return { success: true };
   }
 }
+

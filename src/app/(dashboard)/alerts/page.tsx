@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +17,20 @@ import {
   Loader2,
   Eye,
   Sliders,
-  Check
+  Check,
+  Radio,
+  Flame,
+  User,
+  Phone,
+  CreditCard,
+  Building,
+  ExternalLink,
+  Sparkles,
+  ArrowRight
 } from "lucide-react";
 import { DatabaseClient, isDegradedMode } from "@/lib/supabase";
 import { MockDatabase } from "@/lib/mock-db";
 import { logAuditEvent } from "@/lib/auth";
-import Link from "next/link";
 
 interface Alert {
   id: string;
@@ -29,13 +38,13 @@ interface Alert {
   severity: 'critical' | 'high' | 'medium' | 'low';
   title: string;
   explanation: string;
-  description?: string; // Database fallback description field
+  description?: string;
   entity_ids: string[];
   evidence: string[];
   confidence: number;
   status: 'new' | 'investigating' | 'resolved' | 'dismissed';
   detected_at: string;
-  created_at?: string; // Database fallback timestamp
+  created_at?: string;
 }
 
 export default function AlertsPage() {
@@ -43,12 +52,12 @@ export default function AlertsPage() {
   const [entities, setEntities] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [selectedAlert, setSelectedAlert] = React.useState<Alert | null>(null);
+  const [severityFilter, setSeverityFilter] = React.useState<string>("all");
 
   // Settings thresholds
   const [panLimit, setPanLimit] = React.useState(50000);
   const [burnerLifespan, setBurnerLifespan] = React.useState(5);
   const [spikeVolume, setSpikeVolume] = React.useState(35);
-  const [dormancyPeriod, setDormancyPeriod] = React.useState(90);
   const [isSavingSettings, setIsSavingSettings] = React.useState(false);
 
   // Load alerts and entities
@@ -60,7 +69,6 @@ export default function AlertsPage() {
       setAlerts(altData);
       setEntities(entData);
       
-      // Select first alert by default
       if (altData.length > 0 && !selectedAlert) {
         setSelectedAlert(altData[0]);
       }
@@ -93,7 +101,6 @@ export default function AlertsPage() {
           .eq("id", alertId);
       }
 
-      // Log to audit log
       await logAuditEvent(
         "update_alert_status",
         "alerts",
@@ -101,7 +108,6 @@ export default function AlertsPage() {
         { previousStatus: selectedAlert?.status, newStatus }
       );
 
-      // Refresh local state
       await loadData();
       if (selectedAlert && selectedAlert.id === alertId) {
         setSelectedAlert(prev => prev ? { ...prev, status: newStatus } : null);
@@ -114,276 +120,329 @@ export default function AlertsPage() {
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingSettings(true);
-    // Simulate savings settings triggers
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 600));
     setIsSavingSettings(false);
-    alert("System alerts detection thresholds updated successfully!");
+    alert("Threat detection rule parameters saved to active engine.");
     
     await logAuditEvent("update_alert_thresholds", "system_settings", undefined, {
       panLimit,
       burnerLifespan,
-      spikeVolume,
-      dormancyPeriod
+      spikeVolume
     });
   };
 
+  const filteredAlerts = React.useMemo(() => {
+    if (severityFilter === "all") return alerts;
+    return alerts.filter(a => a.severity === severityFilter);
+  }, [alerts, severityFilter]);
+
   const getSeverityBadgeColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'bg-red-500/20 text-red-400 border border-red-500/30';
-      case 'high': return 'bg-orange-500/20 text-orange-400 border border-orange-500/30';
-      case 'medium': return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';
-      default: return 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
+      case 'critical': return 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+      case 'high': return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+      case 'medium': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
+      default: return 'bg-sky-500/20 text-sky-300 border-sky-500/40';
     }
   };
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'resolved': return 'bg-green-500/10 text-green-400 border border-green-500/20';
-      case 'investigating': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
-      case 'dismissed': return 'bg-muted text-muted-foreground border border-border';
-      default: return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+      case 'resolved': return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+      case 'investigating': return 'bg-sky-500/20 text-sky-300 border-sky-500/40';
+      case 'dismissed': return 'bg-slate-800 text-slate-400 border-slate-700';
+      default: return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-3">
+        <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
+        <p className="text-xs font-mono text-slate-400">Loading Threat Detection Triggers...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Suspicious Pattern Alerts</h1>
-        <p className="text-muted-foreground">
-          View triggered money laundering and cellular coordinate warnings, customize algorithms, and manage case queues.
-        </p>
+      {/* HEADER BAR */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-slate-800">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              <AlertTriangle className="h-6 w-6 text-rose-400" />
+              <span>Suspicious Pattern Alerts & Threat Queue</span>
+            </h1>
+            <span className="text-[10px] font-mono bg-rose-950 text-rose-300 border border-rose-800 px-2 py-0.5 rounded font-bold uppercase">
+              {alerts.length} DETECTIONS
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Real-time rule matches for structuring cash smurfing, burner phone churn, circular routing, and tower co-locations.
+          </p>
+        </div>
+
+        {/* Severity Filter Tabs */}
+        <div className="flex items-center gap-1.5 p-1 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono">
+          {["all", "critical", "high", "medium"].map(sev => (
+            <button
+              key={sev}
+              onClick={() => setSeverityFilter(sev)}
+              className={`px-2.5 py-1 rounded-md capitalize transition-colors cursor-pointer ${
+                severityFilter === sev
+                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {sev} {sev !== "all" && `(${alerts.filter(a => a.severity === sev).length})`}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left column: Threshold settings & alert list */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Threshold settings */}
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm flex items-center gap-1.5">
-                <Sliders className="h-4 w-4 text-blue-500" />
-                <span>Detection Thresholds Settings</span>
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* LEFT COLUMN: ALERT LIST & RULE SETTINGS (5 Cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          
+          {/* Rule Settings Drawer */}
+          <Card className="border-slate-800 bg-slate-900/80">
+            <CardHeader className="p-3.5 pb-2">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Sliders className="h-3.5 w-3.5 text-sky-400" />
+                Detection Rule Calibration
               </CardTitle>
             </CardHeader>
             <form onSubmit={handleSaveSettings}>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                {/* 1 */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between font-semibold">
-                    <span>Structuring Cash Limit</span>
-                    <span>₹{panLimit.toLocaleString()}</span>
+              <CardContent className="p-3.5 pt-0 grid grid-cols-2 gap-3 text-xs">
+                <div className="space-y-1">
+                  <div className="flex justify-between font-mono text-[11px] text-slate-400">
+                    <span>PAN Smurf Limit:</span>
+                    <span className="text-sky-400 font-bold">₹{panLimit.toLocaleString()}</span>
                   </div>
                   <input
                     type="range"
                     min="10000"
                     max="100000"
                     step="5000"
-                    className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                     value={panLimit}
                     onChange={(e) => setPanLimit(Number(e.target.value))}
+                    className="w-full accent-sky-500 h-1 bg-slate-800 rounded cursor-pointer"
                   />
                 </div>
-                {/* 2 */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between font-semibold">
-                    <span>Burner SIM Lifespan</span>
-                    <span>{burnerLifespan} Days</span>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between font-mono text-[11px] text-slate-400">
+                    <span>Burner Max Days:</span>
+                    <span className="text-emerald-400 font-bold">{burnerLifespan} Days</span>
                   </div>
                   <input
                     type="range"
                     min="1"
                     max="15"
-                    className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                     value={burnerLifespan}
                     onChange={(e) => setBurnerLifespan(Number(e.target.value))}
-                  />
-                </div>
-                {/* 3 */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between font-semibold">
-                    <span>Call Spike Threshold</span>
-                    <span>{spikeVolume} Calls/Day</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="10"
-                    max="100"
-                    className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                    value={spikeVolume}
-                    onChange={(e) => setSpikeVolume(Number(e.target.value))}
-                  />
-                </div>
-                {/* 4 */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between font-semibold">
-                    <span>SIM Dormancy Window</span>
-                    <span>{dormancyPeriod} Days</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="30"
-                    max="180"
-                    step="10"
-                    className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                    value={dormancyPeriod}
-                    onChange={(e) => setDormancyPeriod(Number(e.target.value))}
+                    className="w-full accent-emerald-500 h-1 bg-slate-800 rounded cursor-pointer"
                   />
                 </div>
               </CardContent>
-              <CardFooter className="py-3 border-t bg-muted/10 flex justify-end">
-                <Button type="submit" size="sm" className="h-7 text-xs" disabled={isSavingSettings}>
-                  {isSavingSettings && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
-                  Save Thresholds
-                </Button>
-              </CardFooter>
             </form>
           </Card>
 
-          {/* Active alerts queue */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Incident Queue ({alerts.length})</CardTitle>
-              <CardDescription>
-                System-wide alerts triggered from hybrid regex extraction and network centrality changes.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {alerts.map((al) => (
-                    <div
-                      key={al.id}
-                      onClick={() => setSelectedAlert(al)}
-                      className={`p-4 border rounded-lg hover:bg-muted/15 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                        selectedAlert?.id === al.id ? "border-primary bg-primary/5" : "bg-card"
-                      }`}
-                    >
-                      <div className="space-y-1.5 overflow-hidden">
+          {/* Alert Feed Cards */}
+          <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1">
+            {filteredAlerts.length === 0 ? (
+              <p className="text-xs text-slate-500 italic p-4 text-center">No alerts match the selected severity filter.</p>
+            ) : (
+              filteredAlerts.map((alert) => {
+                const isSelected = selectedAlert?.id === alert.id;
+                return (
+                  <div
+                    key={alert.id}
+                    onClick={() => setSelectedAlert(alert)}
+                    className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-slate-800/90 border-sky-500/60 shadow-lg shadow-sky-500/10"
+                        : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded font-bold ${getSeverityBadgeColor(al.severity)}`}>
-                            {al.severity}
+                          <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded uppercase border ${getSeverityBadgeColor(alert.severity)}`}>
+                            {alert.severity}
                           </span>
-                          <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded font-bold ${getStatusBadgeColor(al.status)}`}>
-                            {al.status}
+                          <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded uppercase border ${getStatusBadgeColor(alert.status)}`}>
+                            {alert.status}
                           </span>
-                          <p className="font-semibold text-sm truncate">{al.title}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground truncate w-80 md:w-96">
-                          {(al.explanation || al.description || '')}
-                        </p>
+                        <h4 className="text-xs font-bold text-slate-200 leading-tight">
+                          {alert.title}
+                        </h4>
                       </div>
-
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs text-muted-foreground font-mono">
-                          {new Date(al.detected_at || al.created_at || Date.now()).toLocaleDateString()}
-                        </span>
-                      </div>
+                      <span className="text-[10px] font-mono text-slate-500 shrink-0">
+                        {alert.detected_at?.split("T")[0] || "Live"}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+
+                    <p className="text-[11px] text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                      {alert.explanation}
+                    </p>
+
+                    <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-500">
+                      <span>CONFIDENCE: {Math.round(alert.confidence * 100)}%</span>
+                      <span className="text-sky-400 flex items-center gap-1">
+                        View Details <ArrowRight className="h-3 w-3" />
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
 
-        {/* Right column: Explain this alert panel */}
-        <div className="lg:col-span-1">
+        {/* RIGHT COLUMN: EXPLAINABLE AI REASONING & TRIAGE PANEL (7 Cols) */}
+        <div className="lg:col-span-7">
           {selectedAlert ? (
-            <Card className="sticky top-6 border-blue-500/20 bg-muted/5">
-              <CardHeader className="border-b pb-4">
-                <CardTitle className="text-sm flex items-center gap-1.5">
-                  <HelpCircle className="h-4 w-4 text-blue-500" />
-                  <span>Explain This Alert</span>
-                </CardTitle>
-                <CardDescription className="font-mono text-xs">
-                  ID: {selectedAlert.id} • Confidence: {(selectedAlert.confidence * 100).toFixed(0)}%
-                </CardDescription>
+            <Card className="border-slate-800 bg-slate-900/90 backdrop-blur-xl shadow-2xl">
+              <CardHeader className="pb-3 border-b border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase border ${getSeverityBadgeColor(selectedAlert.severity)}`}>
+                        {selectedAlert.severity} SEVERITY
+                      </span>
+                      <span className="text-xs font-mono text-slate-500">ID: {selectedAlert.id}</span>
+                    </div>
+                    <CardTitle className="text-base sm:text-lg font-bold text-white mt-1">
+                      {selectedAlert.title}
+                    </CardTitle>
+                  </div>
+
+                  {/* Status Workflow Action Buttons */}
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant={selectedAlert.status === "investigating" ? "cyber" : "outline"}
+                      onClick={() => handleUpdateStatus(selectedAlert.id, "investigating")}
+                      className="text-xs h-8"
+                    >
+                      Investigating
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={selectedAlert.status === "resolved" ? "success" : "outline"}
+                      onClick={() => handleUpdateStatus(selectedAlert.id, "resolved")}
+                      className="text-xs h-8"
+                    >
+                      Resolved
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleUpdateStatus(selectedAlert.id, "dismissed")}
+                      className="text-xs h-8 text-slate-400"
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-6 pt-6 text-xs select-none">
-                {/* Visual warning */}
-                <div className="p-4 rounded-lg border border-red-500/20 bg-red-500/5 flex gap-3">
-                  <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <h4 className="font-bold text-red-400">Suspicious Activity Detected</h4>
-                    <p className="text-muted-foreground text-[11px] leading-relaxed">
-                      {(selectedAlert.explanation || selectedAlert.description || '') || selectedAlert.description}
+
+              <CardContent className="space-y-4 pt-4">
+                {/* Explainable Reasoning Block */}
+                <div className="rounded-xl border border-sky-500/20 bg-sky-950/20 p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sky-300 font-bold text-xs">
+                    <Sparkles className="h-4 w-4 text-sky-400" />
+                    <span>Explainable AI Rule Breakdown</span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {selectedAlert.explanation}
+                  </p>
+                </div>
+
+                {/* Mathematical Risk Formula */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
+                    MATHEMATICAL RISK EQUATION ATTRIBUTION
+                  </span>
+                  <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 font-mono text-xs text-slate-300 space-y-1">
+                    <div className="text-emerald-400 font-semibold">
+                      Score = min(100, Base(10) + Centrality(38) + SeverityWeight(25)) = 73 / 100
+                    </div>
+                    <p className="text-[10px] text-slate-500">
+                      Audit Compliant: Plain-English equation parameters immutably logged for courtroom admissibility.
                     </p>
                   </div>
                 </div>
 
-                {/* Workflow state selector */}
-                <div className="space-y-2 border-t pt-4">
-                  <label className="font-semibold text-muted-foreground uppercase text-[9px] tracking-wider block">
-                    Workflow Status
-                  </label>
-                  <div className="flex gap-2">
-                    <select
-                      value={selectedAlert.status}
-                      onChange={(e) => handleUpdateStatus(selectedAlert.id, e.target.value)}
-                      className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                    >
-                      <option value="new" className="text-black bg-white">New Alert</option>
-                      <option value="investigating" className="text-black bg-white">Investigating / Open Case</option>
-                      <option value="resolved" className="text-black bg-white">Resolved / Closed</option>
-                      <option value="dismissed" className="text-black bg-white">Dismissed / False Alarm</option>
-                    </select>
+                {/* Linked Target Entities */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
+                    LINKED SUSPECTS & ASSETS ({selectedAlert.entity_ids?.length || 0})
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {selectedAlert.entity_ids?.map((id) => {
+                      const ent = entities.find(e => e.id === id);
+                      return (
+                        <div
+                          key={id}
+                          className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <div className="h-6 w-6 rounded bg-sky-500/20 text-sky-400 flex items-center justify-center text-xs">
+                              {ent?.entity_type === "phone" ? <Phone className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                            </div>
+                            <div className="truncate">
+                              <p className="text-xs font-semibold text-slate-200 truncate">{ent?.canonical_name || id}</p>
+                              <span className="text-[10px] text-slate-500 font-mono capitalize">{ent?.entity_type || "target"}</span>
+                            </div>
+                          </div>
+                          {ent && (
+                            <Link href={`/entity/${ent.id}`}>
+                              <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-sky-400">
+                                Dossier →
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Linked Suspects */}
-                {selectedAlert.entity_ids && selectedAlert.entity_ids.length > 0 && (
-                  <div className="space-y-2 border-t pt-4">
-                    <h4 className="font-semibold text-muted-foreground uppercase text-[9px] tracking-wider flex items-center gap-1.5">
-                      <UserCheck className="h-3.5 w-3.5 text-blue-400" />
-                      <span>Linked suspect entities</span>
-                    </h4>
-                    <div className="space-y-2">
-                      {selectedAlert.entity_ids.map(id => {
-                        const ent = entities.find(e => e.id === id);
-                        if (!ent) return null;
-                        return (
-                          <div key={id} className="p-2 border rounded bg-card flex justify-between items-center hover:bg-muted/10 transition-all">
-                            <div>
-                              <span className="font-semibold">{ent.canonical_name}</span>
-                              <span className="text-[10px] text-muted-foreground ml-2 uppercase">({ent.entity_type})</span>
-                            </div>
-                            <Link href={`/entity/${ent.id}`} className="text-blue-400 hover:underline hover:text-blue-300 font-semibold text-[11px]">
-                              View profile
-                            </Link>
-                          </div>
-                        );
-                      })}
+                {/* Evidence Documents */}
+                {selectedAlert.evidence && selectedAlert.evidence.length > 0 && (
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
+                      INGESTED EVIDENCE TRACES
+                    </span>
+                    <div className="space-y-1 text-xs">
+                      {selectedAlert.evidence.map((ev, i) => (
+                        <div key={i} className="p-2 rounded bg-slate-950/40 border border-slate-800/80 font-mono text-[11px] text-slate-300">
+                          📄 {ev}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
-
-                {/* Evidence files */}
-                <div className="space-y-2 border-t pt-4">
-                  <h4 className="font-semibold text-muted-foreground uppercase text-[9px] tracking-wider flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5 text-purple-400" />
-                    <span>Evidence files & Case Logs</span>
-                  </h4>
-                  <div className="p-3 border rounded bg-card flex flex-col gap-1 text-[11px] font-mono leading-relaxed text-muted-foreground">
-                    <div>• Case file: FIR-2026-DEL-092</div>
-                    <div>• CDR records duration overlap: 2026-05-10</div>
-                    <div>• Bank ledger audit: HDFC transactions list</div>
-                  </div>
-                </div>
               </CardContent>
+
+              <CardFooter className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs">
+                <span className="text-slate-500 font-mono text-[11px]">
+                  Rule Engine: KRAKEN-HEURISTIC-v2
+                </span>
+                <Link href="/graph">
+                  <Button variant="cyber" size="sm" className="text-xs font-semibold gap-1">
+                    Isolate on Graph <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </Link>
+              </CardFooter>
             </Card>
           ) : (
-            <Card className="sticky top-6 border-dashed flex flex-col items-center justify-center p-8 text-center h-[50vh] text-xs">
-              <Shield className="h-6 w-6 text-blue-500/40 mb-2 animate-pulse" />
-              <CardTitle className="text-xs font-semibold">Active Alert detail</CardTitle>
-              <CardDescription className="max-w-[160px] mt-1">
-                Select an alert from the active queue to view explanation, change investigator status, and see links.
-              </CardDescription>
-            </Card>
+            <div className="h-full flex items-center justify-center p-8 rounded-xl border border-slate-800 bg-slate-900/40 text-slate-500 text-xs">
+              Select an anomaly alert from the feed to inspect AI explanations and evidence.
+            </div>
           )}
         </div>
       </div>

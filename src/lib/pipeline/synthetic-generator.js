@@ -808,13 +808,13 @@ function generate() {
     ],
     audit_logs: []
   };
-
-  const outputFilePath = path.join(__dirname, 'mock_database.json');
-  fs.writeFileSync(outputFilePath, JSON.stringify(finalSchema, null, 2), 'utf8');
-  console.log(`Successfully generated and wrote database seeds to: ${outputFilePath}`);
-  console.log(`Generated entities count: ${entities.length}`);
-  console.log(`Generated relationships count: ${relationships.length}`);
-  console.log(`Generated documents count: ${docs.length}`);
+  return finalSchema;
 }
 
-generate();
+module.exports = { generateDatabase: generate };
+
+if (require.main === module) {
+  const finalSchema = generate();
+  const outputFilePath = path.join(__dirname, 'mock_database.json');
+  fs.writeFileSync(outputFilePath, JSON.stringify(finalSchema, null, 2), 'utf8');
+}

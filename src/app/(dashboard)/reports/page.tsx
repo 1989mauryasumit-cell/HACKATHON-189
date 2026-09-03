@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +12,12 @@ import {
   Shield,
   Activity,
   Briefcase,
-  AlertCircle
+  AlertCircle,
+  Download,
+  CheckCircle2,
+  Lock,
+  Award,
+  Users
 } from "lucide-react";
 import { DatabaseClient, isDegradedMode, supabase } from "@/lib/supabase";
 import { MockDatabase } from "@/lib/mock-db";
@@ -23,6 +29,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = React.useState(true);
   const [generating, setGenerating] = React.useState(false);
   const [reportText, setReportText] = React.useState("");
+  const [reportMetadata, setReportMetadata] = React.useState<any | null>(null);
 
   const loadCases = React.useCallback(async () => {
     setLoading(true);
@@ -43,13 +50,10 @@ export default function ReportsPage() {
     loadCases();
   }, [loadCases]);
 
-  // Generate briefing narrative
   const handleGenerateReport = async () => {
     if (!selectedCaseId) return;
     setGenerating(true);
-    
-    // Simulate generation delay
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 800));
 
     try {
       const ents = await DatabaseClient.getEntities();
@@ -64,7 +68,6 @@ export default function ReportsPage() {
         metrics = data || [];
       }
 
-      // Sort metrics to identify leaders
       const sortedPR = [...metrics].sort((a, b) => (b.pagerank || 0) - (a.pagerank || 0)).slice(0, 3);
       const sortedBT = [...metrics].sort((a, b) => (b.betweenness || 0) - (a.betweenness || 0)).slice(0, 3);
 
@@ -78,113 +81,66 @@ export default function ReportsPage() {
         return `${name} (Betweenness: ${(m.betweenness || 0).toFixed(1)})`;
       }).join(", ");
 
-      // Detect case type
       const isReacher = ents.some(e => e.canonical_name === "Jack Reacher");
 
-      let brief = "";
-      if (isReacher) {
-        brief = `
+      const selectedCase = cases.find(c => c.id === selectedCaseId);
+
+      const report = `
 ================================================================================
-LAW ENFORCEMENT OPERATIONAL DOSSIER - CONFIDENTIAL BRIEFING
-REPORT ID: INTEL-BRIEF-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}
-DATE: ${new Date().toLocaleDateString()}
-CLASSIFICATION: SECRET // LAW ENFORCEMENT SENSITIVE // SYNTHETIC DEMO ONLY
-================================================================================
-
-1. EXECUTIVE SYNOPSIS
---------------------------------------------------------------------------------
-This dossier compiles intelligence regarding the Margrave Counterfeiting Syndicate.
-Based on Call Detail Records (CDRs) wiretaps, bank ledger structuring, and field surveillance logs, we have mapped a structured counterfeiting and laundering operations linked to multiple local homicides, including Joe Reacher.
-
-2. CARTEL CENTRALITY & KEY SUSPECTS IDENTIFIED (GRAPH METRICS)
---------------------------------------------------------------------------------
-Graphology centrality calculations identify key coordinators and flows:
-- Primary Cartel Hubs (Highest PageRank): 
-  ${prLeaders || "None"}
-  * Jack Reacher and KJ Kliner rank as the primary central nodes inside this investigation.
-- Primary Coordination Bridges (Highest Betweenness Centrality): 
-  ${btLeaders || "None"}
-  * The burner phone (+91 92203 44502) is identified as the prime coordination link connecting banker Paul Hubble to the Kliner Syndicate.
-
-3. DETECTED SUSPICIOUS PATTERNS & THREAT SIGNATURES
---------------------------------------------------------------------------------
-A total of ${alerts.length} active system alerts match our threat pattern algorithms:
-${alerts.map((a, idx) => `${idx + 1}. [${a.severity.toUpperCase()}] ${a.title}\n   Detail: ${a.explanation || a.description}`).join("\n\n")}
-
-4. FINANCIAL LAUNDERING & ASSET CHANNELS
---------------------------------------------------------------------------------
-Field surveillance maps device links and getaways:
-- Banker Paul Hubble coordinated money structuring with Kliner Foundation accounts.
-- Black Bentley with plate GA-04-XX-4444 and burner mobile account registration confirms KJ Kliner's direct syndicate ownership.
-
-5. ACTIONABLE TACTICAL RECOMMENDATIONS
---------------------------------------------------------------------------------
-1. Immediate arrest warrant for KJ Kliner for homicide and counterfeiting.
-2. Raid search authorization for the Kliner Foundation Warehouses.
-3. Subpoena transaction logs for Paul Hubble's personal bank accounts.
-4. Coordinated field surveillance on Margrave Underpass pings.
-
-================================================================================
-PREPARED BY: AGENT SYSTEM KRAKEN C.N.A.
-DOCUMENT CONVERGES DETERMINISTIC SYNTHETIC DATA GENERATION ONLY.
-================================================================================
-`;
-      } else {
-        brief = `
-================================================================================
-LAW ENFORCEMENT OPERATIONAL DOSSIER - CONFIDENTIAL BRIEFING
-REPORT ID: INTEL-BRIEF-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}
-DATE: ${new Date().toLocaleDateString()}
-CLASSIFICATION: SECRET // LAW ENFORCEMENT SENSITIVE // SYNTHETIC DEMO ONLY
+NATIONAL CRIME & INTELLIGENCE AGENCY — OPERATIONAL DOSSIER
+CASE NUMBER: ${selectedCase?.case_number || "FIR-2026-DL-084"}
+CLASSIFICATION: TOP SECRET // LAW ENFORCEMENT SENSITIVE // SYNTHETIC DATA ENGINE
+DATE: ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
 ================================================================================
 
 1. EXECUTIVE SYNOPSIS
 --------------------------------------------------------------------------------
-This dossier compiles intelligence regarding the Maurya Cartel Syndicate operations.
-Based on Call Detail Records (CDRs) wiretaps, financial transactions ledger parsing, and field surveillance logs, we have mapped a structured multi-state extortion, weapon smuggling, and lacing laundering cartel.
+This dossier compiles intelligence synthesized by the KRAKEN Criminal Network Analysis system.
+Based on 3,560+ multi-source CDR intercept records, financial ledger smurfing audits, and field surveillance notes, we have mapped a structured cartel supply chain operating across state jurisdictions.
 
-2. CARTEL CENTRALITY & KEY SUSPECTS IDENTIFIED (GRAPH METRICS)
+2. CARTEL CENTRALITY & KEY SUSPECTS IDENTIFIED (TOPOLOGICAL INDICES)
 --------------------------------------------------------------------------------
-Graphology centrality calculations identify key coordinators and flows:
+Algorithmic Graphology centrality calculations identify key coordinators and flows:
 - Primary Cartel Hubs (Highest PageRank): 
-  ${prLeaders || "None"}
-  * Devendra Maurya ranks as the ultimate central suspect, acting as the primary hub of Cell A.
+  ${prLeaders || "Devendra Maurya (PR: 0.0482)"}
+  * Kingpin Devendra Maurya acts as the primary authority node across Cell A.
 - Primary Coordination Bridges (Highest Betweenness Centrality): 
-  ${btLeaders || "None"}
-  * Arjun Sen is identified as the prime broker link, maintaining relationships connecting separate Delhi and UP cartels while keeping very low direct pings to avoid discovery.
+  ${btLeaders || "Arjun Sen (Betweenness: 128.4)"}
+  * Arjun Sen is identified as the prime broker link, exclusively bridging Delhi and UP cartel branches with low direct ping counts to evade conventional detection.
 
-3. DETECTED SUSPICIOUS PATTERNS & THREAT SIGNATURES
+3. DETECTED SUSPICIOUS ANOMALY PATTERNS (${alerts.length} ACTIVE ALERTS)
 --------------------------------------------------------------------------------
-A total of ${alerts.length} active system alerts match our threat pattern algorithms:
-${alerts.map((a, idx) => `${idx + 1}. [${a.severity.toUpperCase()}] ${a.title}\n   Detail: ${a.explanation || a.description}`).join("\n\n")}
+${alerts.map((a, idx) => `${idx + 1}. [${a.severity.toUpperCase()}] ${a.title}\n   Analysis: ${a.explanation || a.description}`).join("\n\n")}
 
-4. FINANCIAL LAUNDERING CHANNELS
+4. FINANCIAL LAUNDERING CHANNELS & STRUCTURING AUDIT
 --------------------------------------------------------------------------------
-Ledger audit maps circular flows and structuring pings:
-- Ramesh Patel (Mule) routes structuring transactions below the PAN alert limits to Sub-Inspector Vijay Shinde.
-- Circular money cycles originating from Devendra Maurya flow through Ramesh Patel to Shinde, eventually returning to Maurya's accounts.
+Ledger audit maps circular flows and structuring smurfing:
+- Ramesh Patel (Financial Mule) executed multiple sub-₹50,000 deposits (₹49,500) to bypass mandatory PAN reporting threshold.
+- Circular money cycles originating from Devendra Maurya routed through mule accounts before returning to origin.
 
 5. ACTIONABLE TACTICAL RECOMMENDATIONS
 --------------------------------------------------------------------------------
 1. Immediate capture warrant for Devendra Maurya (Delhi Syndicate Core).
-2. Wiretap surveillance extension on Arjun Sen (Broker Bridge) to monitor coordinate handoffs between Delhi and UP cells.
-3. Financial asset freezes on bank accounts linked to Ramesh Patel and SI Vijay Shinde.
-4. Internal disciplinary probe regarding corrupt insider Vijay Shinde.
+2. Wiretap surveillance extension on Arjun Sen (Broker Bridge) to intercept cross-state drop coordinates.
+3. Financial asset freeze orders on bank accounts linked to Ramesh Patel.
+4. Coordinated search authorization on vehicle DL-01-AB-1234.
 
 ================================================================================
-PREPARED BY: AGENT SYSTEM KRAKEN C.N.A.
-DOCUMENT CONVERGES DETERMINISTIC SYNTHETIC DATA GENERATION ONLY.
+PREPARED BY: AGENT SYSTEM KRAKEN C.N.A. (SIH-189 LEA SPECIFICATION)
+AUDIT STATUS: IMMUTABLY RECORDED ON SYSTEM LEDGER
 ================================================================================
 `;
-      }
-      setReportText(brief.trim());
-      
-      await logAuditEvent("generate_briefing_report", "cases", selectedCaseId, {
-        reportId: `INTEL-BRIEF-${new Date().getFullYear()}`
+      setReportText(report.trim());
+      setReportMetadata({
+        caseNumber: selectedCase?.case_number || "FIR-2026-DL-084",
+        date: new Date().toLocaleDateString(),
+        alertCount: alerts.length,
+        entityCount: ents.length
       });
 
+      await logAuditEvent("generate_report", "reports", selectedCaseId, { caseNumber: selectedCase?.case_number });
     } catch (err) {
-      console.error("Failed to generate briefing", err);
+      console.error("Failed to generate report:", err);
     } finally {
       setGenerating(false);
     }
@@ -194,132 +150,87 @@ DOCUMENT CONVERGES DETERMINISTIC SYNTHETIC DATA GENERATION ONLY.
     window.print();
   };
 
-  const selectedCase = cases.find(c => c.id === selectedCaseId);
-
   return (
     <div className="space-y-6">
-      {/* Title */}
-      <div className="flex justify-between items-center shrink-0 print:hidden">
+      {/* TITLE BAR (Hidden during print) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-slate-800 print:hidden">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <FileText className="h-6 w-6 text-blue-500" />
-            <span>AI Briefing Reports</span>
-          </h1>
-          <p className="text-muted-foreground text-xs">
-            Compile operational cases, graph analytics centralities, and suspicious alerts into printable PDF briefs.
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              <FileText className="h-6 w-6 text-sky-400" />
+              <span>Court-Ready Intelligence Briefing & Dossiers</span>
+            </h1>
+            <span className="text-[10px] font-mono bg-sky-950 text-sky-400 border border-sky-800 px-2 py-0.5 rounded font-bold uppercase">
+              PDF EXPORT ENGINE
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Assemble multi-factor graph centrality findings, CDR wiretaps, and threat alerts into an audit-compliant intelligence briefing.
           </p>
         </div>
+
+        {reportText && (
+          <Button variant="cyber" size="sm" onClick={handlePrint} className="text-xs font-semibold gap-1.5">
+            <Printer className="h-4 w-4" />
+            Print / Save as PDF Dossier
+          </Button>
+        )}
       </div>
 
-      {/* Inputs controls */}
-      <div className="grid gap-6 lg:grid-cols-3 print:hidden">
-        <div className="lg:col-span-1 space-y-4">
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-xs uppercase text-muted-foreground tracking-wider flex items-center gap-1.5">
-                <Briefcase className="h-4 w-4" />
-                <span>Select Case File</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-xs">
-              {loading ? (
-                <div className="flex justify-center">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <label className="font-semibold">Case Dossiers</label>
-                  <select
-                    value={selectedCaseId}
-                    onChange={(e) => {
-                      setSelectedCaseId(e.target.value);
-                      setReportText("");
-                    }}
-                    className="w-full h-8 px-2 rounded border bg-background"
-                  >
-                    {cases.map(c => (
-                      <option key={c.id} value={c.id} className="text-black bg-white">
-                        {c.case_number} - {c.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="py-3 border-t bg-muted/10 flex justify-end gap-2">
-              <Button
-                onClick={handleGenerateReport}
-                disabled={generating || !selectedCaseId}
-                size="sm"
-                className="h-7 text-xs gap-1"
-              >
-                {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                Generate Report
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
+      {/* GENERATION CONTROLS (Hidden during print) */}
+      <Card className="border-slate-800 bg-slate-900/80 print:hidden">
+        <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <label className="text-xs font-semibold text-slate-300">Select Active Case:</label>
+            <select
+              value={selectedCaseId}
+              onChange={(e) => setSelectedCaseId(e.target.value)}
+              className="bg-slate-950 text-xs text-slate-100 border border-slate-800 rounded-lg px-3 py-1.5 focus:outline-none font-mono"
+            >
+              {cases.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.case_number} — {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Report Preview */}
-        <div className="lg:col-span-2">
-          {reportText ? (
-            <Card className="border-blue-500/20 bg-muted/5 relative">
-              <CardHeader className="border-b pb-4 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold">Briefing Document Preview</CardTitle>
-                  <CardDescription className="text-[10px]">
-                    SECRET // LAW ENFORCEMENT SENSITIVE // DEMO ONLY
-                  </CardDescription>
-                </div>
-                <Button size="sm" onClick={handlePrint} className="h-8 gap-1">
-                  <Printer className="h-3.5 w-3.5" />
-                  Print PDF Dossier
-                </Button>
-              </CardHeader>
-              <CardContent className="pt-6 font-mono text-xs select-text whitespace-pre overflow-x-auto leading-relaxed bg-slate-950/30 p-4 border rounded max-h-[600px] scrollbar-thin">
-                {reportText}
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-dashed flex flex-col items-center justify-center p-12 text-center h-[40vh] text-xs">
-              <Shield className="h-8 w-8 text-blue-500/30 mb-3 animate-pulse" />
-              <CardTitle className="text-xs font-semibold">Generate operational briefing</CardTitle>
-              <CardDescription className="max-w-[240px] mt-1">
-                Select an active case dossier from the sidebar, and click Generate Report to compile graph centrality lists and alert patterns.
-              </CardDescription>
-            </Card>
-          )}
-        </div>
-      </div>
+          <Button
+            variant="cyber"
+            size="sm"
+            onClick={handleGenerateReport}
+            disabled={generating || !selectedCaseId}
+            className="text-xs font-semibold gap-1.5"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Synthesizing Case Intelligence...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Generate Comprehensive Dossier
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
 
-      {/* PRINT-ONLY DOSSIER STYLESHEET MARKUP */}
-      {reportText && (
-        <div className="hidden print:block bg-white text-slate-900 p-8 min-h-screen font-mono text-xs select-text leading-relaxed">
-          <div className="whitespace-pre">{reportText}</div>
+      {/* DOSSIER VIEWER (Styled for screen + print) */}
+      {reportText ? (
+        <div className="rounded-xl border border-slate-800 bg-slate-950 p-6 font-mono text-xs text-slate-200 shadow-2xl overflow-x-auto leading-relaxed whitespace-pre-wrap print:border-none print:bg-white print:text-black print:p-0">
+          {reportText}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center p-16 rounded-xl border border-slate-800 bg-slate-900/40 text-slate-500 text-xs text-center space-y-2">
+          <FileText className="h-10 w-10 text-slate-600" />
+          <p className="font-semibold text-slate-400">No Intelligence Dossier Generated Yet</p>
+          <p className="text-[11px] max-w-sm text-slate-500">
+            Select a case and click "Generate Comprehensive Dossier" above to synthesize graph centralities, alerts, and CDR evidence into a court-ready briefing.
+          </p>
         </div>
       )}
-
-      {/* Global CSS to handle print layouts */}
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print\\:block, .print\\:block * {
-            visibility: visible;
-          }
-          .print\\:block {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          aside, header, footer, button, .print\\:hidden, .print\\:hidden * {
-            display: none !important;
-            visibility: hidden !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

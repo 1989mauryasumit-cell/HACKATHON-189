@@ -1,9 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Download,
   Filter,
@@ -16,17 +14,23 @@ import {
   Locate,
   Network,
   Info,
-  Loader2
+  Loader2,
+  ZoomIn,
+  ZoomOut,
+  Crosshair,
+  Sparkles,
+  Layers,
+  Activity
 } from "lucide-react";
 
 // Node styling configurations
-const ENTITY_STYLES: Record<string, { bg: string; icon: string }> = {
-  person: { bg: "#3b82f6", icon: "👤" },     // Blue
-  phone: { bg: "#10b981", icon: "📞" },      // Green
-  vehicle: { bg: "#f59e0b", icon: "🚗" },    // Amber
-  location: { bg: "#ef4444", icon: "📍" },   // Red
-  bank_account: { bg: "#8b5cf6", icon: "💳" }, // Purple
-  organization: { bg: "#ec4899", icon: "🏢" }  // Pink
+const ENTITY_STYLES: Record<string, { bg: string; border: string; icon: string }> = {
+  person: { bg: "#0284c7", border: "#38bdf8", icon: "👤" },        // Sky Blue
+  phone: { bg: "#059669", border: "#34d399", icon: "📞" },         // Emerald Green
+  vehicle: { bg: "#d97706", border: "#fbbf24", icon: "🚗" },       // Amber
+  location: { bg: "#e11d48", border: "#fb7185", icon: "📍" },      // Rose/Red
+  bank_account: { bg: "#7c3aed", border: "#c084fc", icon: "💳" },  // Purple
+  organization: { bg: "#db2777", border: "#f472b6", icon: "🏢" }   // Pink
 };
 
 interface NetworkGraphCanvasProps {
@@ -49,6 +53,7 @@ export function NetworkGraphCanvas({
   const [layoutName, setLayoutName] = React.useState<string>("cose");
   const [isMounted, setIsMounted] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
 
   // Handle client mount check to prevent SSR error
   React.useEffect(() => {
@@ -84,16 +89,17 @@ export function NetworkGraphCanvas({
       });
       const deduplicatedEdges = Array.from(uniqueEdgesMap.values());
 
-      // Map entity metrics to node sizes using deduplicated items
+      // Map entity metrics to node sizes
       const elements = [
         ...deduplicatedNodes.map((node) => {
           const metrics = metricsData.find(m => m.entity_id === node.id);
-          const pr = metrics?.pagerank || 0.01;
-          
-          // Map pagerank value to node size
-          const minSize = 25;
-          const maxSize = 60;
-          const size = Math.min(maxSize, minSize + pr * 1500);
+          // Scale size based on PageRank or Degree Centrality
+          let size = 26;
+          if (metrics && metrics.pagerank) {
+            size = Math.max(24, Math.min(56, 24 + metrics.pagerank * 450));
+          } else if (node.risk_score) {
+            size = Math.max(24, Math.min(50, 20 + (node.risk_score / 100) * 30));
+          }
 
           return {
             group: "nodes" as const,
@@ -133,77 +139,96 @@ export function NetworkGraphCanvas({
               "text-margin-y": 6,
               "width": "data(size)",
               "height": "data(size)",
-              "background-color": (ele: any) => ENTITY_STYLES[ele.data("type")]?.bg || "#64748b",
-              "color": "#ffffff",
+              "background-color": (ele: any) => ENTITY_STYLES[ele.data("type")]?.bg || "#334155",
+              "color": "#f8fafc",
               "font-size": "10px",
               "font-weight": "bold",
+              "text-outline-width": 2,
+              "text-outline-color": "#050811",
               "border-width": 2,
-              "border-color": "#ffffff",
+              "border-color": (ele: any) => ENTITY_STYLES[ele.data("type")]?.border || "#94a3b8",
               "text-wrap": "ellipsis",
-              "text-max-width": "80px",
-              "transition-property": "background-color, border-color, border-width",
-              "transition-duration": 0.2
+              "text-max-width": "90px",
+              "transition-property": "background-color, border-color, border-width, width, height",
+              "transition-duration": 0.25
             }
           },
           {
             selector: "edge",
             style: {
               "label": "data(label)",
-              "width": (ele: any) => Math.min(6, 1 + ele.data("weight") * 0.5),
-              "line-color": "#475569",
-              "target-arrow-color": "#475569",
+              "width": (ele: any) => Math.min(5, 1.2 + ele.data("weight") * 0.4),
+              "line-color": "#334155",
+              "target-arrow-color": "#334155",
               "target-arrow-shape": "triangle",
               "curve-style": "bezier",
-              "font-size": "8px",
-              "color": "#cbd5e1",
+              "font-size": "7.5px",
+              "color": "#64748b",
               "text-rotation": "autorotate",
               "text-margin-y": -6,
-              "opacity": 0.7
+              "opacity": 0.75
             }
           },
-          // AI predicted relationships styled dashed
+          // AI predicted relationships
           {
             selector: "edge[?isPredicted]",
             style: {
               "line-style": "dashed",
-              "line-color": "#8b5cf6",
-              "target-arrow-color": "#8b5cf6",
-              "opacity": 0.9
+              "line-color": "#a855f7",
+              "target-arrow-color": "#a855f7",
+              "opacity": 0.95
             }
           },
-          // Highlighting path elements
+          // Path Highlight Nodes
           {
-              selector: "node.highlighted",
-              style: {
-                "border-width": 6,
-                "border-color": "#f59e0b",
-                "opacity": 1.0
-              }
-            },
-            {
-              selector: "edge.highlighted",
-              style: {
-                "line-color": "#3b82f6",
-                "target-arrow-color": "#3b82f6",
-                "width": 4,
-                "opacity": 1.0
-              }
-            },
+            selector: "node.highlighted",
+            style: {
+              "border-width": 4,
+              "border-color": "#f59e0b",
+              "background-color": "#d97706",
+              "color": "#fbbf24",
+              "font-size": "11px",
+              "font-weight": "bold",
+              "opacity": 1.0
+            }
+          },
+          // Path Highlight Edges
+          {
+            selector: "edge.highlighted",
+            style: {
+              "line-color": "#f59e0b",
+              "target-arrow-color": "#f59e0b",
+              "width": 4,
+              "opacity": 1.0
+            }
+          },
+          // Search matched node
+          {
+            selector: "node.searched",
+            style: {
+              "border-width": 4,
+              "border-color": "#38bdf8",
+              "color": "#38bdf8",
+              "font-size": "12px",
+              "font-weight": "bold"
+            }
+          },
           // Selected Node styling
           {
             selector: ":selected",
             style: {
               "border-width": 4,
-              "border-color": "#f59e0b",
-              "background-color": "#2563eb"
+              "border-color": "#38bdf8",
+              "background-color": "#0284c7"
             }
           }
         ],
         layout: {
           name: layoutName,
           animate: true,
-          randomize: true,
-          fit: true
+          randomize: false,
+          fit: true,
+          padding: 30
         } as any
       });
 
@@ -218,7 +243,6 @@ export function NetworkGraphCanvas({
         }
       });
 
-      // Fit elements on screen
       cyInstance.fit();
     };
 
@@ -229,7 +253,7 @@ export function NetworkGraphCanvas({
         cyInstance.destroy();
       }
     };
-  }, [isMounted, nodesData, edgesData, metricsData, isMounted]);
+  }, [isMounted, nodesData, edgesData, metricsData, layoutName]);
 
   // Handle path highlighting changes
   React.useEffect(() => {
@@ -239,11 +263,9 @@ export function NetworkGraphCanvas({
     cy.elements().removeClass("highlighted");
 
     if (selectedPathNodeIds.length > 0) {
-      // Highlight matching nodes
       const selector = selectedPathNodeIds.map(id => `node[id="${id}"]`).join(",");
       cy.elements(selector).addClass("highlighted");
 
-      // Highlight connections between them
       for (let i = 0; i < selectedPathNodeIds.length - 1; i++) {
         const u = selectedPathNodeIds[i];
         const v = selectedPathNodeIds[i + 1];
@@ -252,146 +274,174 @@ export function NetworkGraphCanvas({
     }
   }, [selectedPathNodeIds]);
 
-  // Run layout algorithm
-  const handleRunLayout = (name: string) => {
-    setLayoutName(name);
+  // Handle canvas search term
+  React.useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
 
-    cy.layout({
-      name,
-      animate: true,
-      fit: true,
-      animationDuration: 800
-    }).run();
-  };
+    cy.elements().removeClass("searched");
 
-  // Search node focus
-  const handleSearchNode = () => {
-    const cy = cyRef.current;
-    if (!cy || !searchTerm) return;
-
-    const matched = cy.nodes().filter((ele: any) => 
-      ele.data("label").toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    if (matched.length > 0) {
-      cy.zoom(1.2);
-      cy.center(matched[0]);
-      matched[0].select();
-      
-      const rawNode = nodesData.find(n => n.id === matched[0].id());
-      if (rawNode) onNodeSelect(rawNode);
+    if (searchTerm.trim()) {
+      const matched = cy.nodes().filter((node: any) => 
+        node.data("label").toLowerCase().includes(searchTerm.toLowerCase().trim())
+      );
+      matched.addClass("searched");
+      if (matched.length > 0) {
+        cy.animate({
+          center: { eles: matched.first() },
+          zoom: 1.6,
+          duration: 400
+        });
+      }
     }
-  };
+  }, [searchTerm]);
 
   const handleZoomIn = () => {
-    const cy = cyRef.current;
-    if (cy) cy.zoom(cy.zoom() * 1.2);
+    if (cyRef.current) cyRef.current.zoom(cyRef.current.zoom() * 1.25);
   };
 
   const handleZoomOut = () => {
-    const cy = cyRef.current;
-    if (cy) cy.zoom(cy.zoom() * 0.8);
+    if (cyRef.current) cyRef.current.zoom(cyRef.current.zoom() * 0.8);
   };
 
   const handleFit = () => {
-    const cy = cyRef.current;
-    if (cy) cy.fit();
+    if (cyRef.current) cyRef.current.fit(undefined, 30);
   };
 
   const handleExportPng = () => {
-    const cy = cyRef.current;
-    if (!cy) return;
-
-    const png64 = cy.png({ full: true, bg: "#090d16" });
+    if (!cyRef.current) return;
+    const png64 = cyRef.current.png({ full: true, bg: "#060913", scale: 2 });
     const link = document.createElement("a");
     link.href = png64;
-    link.download = `kraken_network_${new Date().toISOString().split('T')[0]}.png`;
-    document.body.appendChild(link);
+    link.download = `kraken_network_graph_${new Date().toISOString().split('T')[0]}.png`;
     link.click();
-    document.body.removeChild(link);
   };
 
   if (!isMounted) {
     return (
-      <div className="w-full h-[600px] border border-dashed rounded-lg flex flex-col items-center justify-center bg-muted/10">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground mt-2">Loading Graph Engine...</p>
+      <div className="w-full h-full min-h-[500px] bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin text-sky-400" />
+          <p className="text-xs font-mono text-slate-400">Initializing Cytoscape Canvas...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-full min-h-[500px]">
-      {/* Search overlay controls */}
-      <div className="absolute top-4 left-4 z-10 flex gap-2 max-w-sm w-full">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className={`relative w-full h-full min-h-[540px] rounded-xl border border-slate-800 bg-[#060913] overflow-hidden cyber-grid flex flex-col ${isFullscreen ? "fixed inset-0 z-50 rounded-none" : ""}`}>
+      {/* FLOATING TOP CONTROL TOOLBAR */}
+      <div className="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        
+        {/* Search Node inside Canvas */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 border border-slate-800 backdrop-blur-md shadow-lg pointer-events-auto">
+          <Search className="h-3.5 w-3.5 text-sky-400" />
           <input
             type="text"
-            placeholder="Focus target suspect..."
-            className="w-full h-9 pl-9 pr-4 rounded-md border bg-card/95 text-xs shadow-md focus:outline-none focus:ring-1 focus:ring-ring"
+            placeholder="Focus node..."
+            className="w-28 sm:w-36 bg-transparent text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none font-mono"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearchNode()}
           />
         </div>
-        <Button size="sm" onClick={handleSearchNode} className="shadow-md">
-          Go
-        </Button>
+
+        {/* Layout Switcher & Actions */}
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-900/90 border border-slate-800 backdrop-blur-md shadow-lg pointer-events-auto">
+          <Layers className="h-3.5 w-3.5 text-slate-400" />
+          <select
+            value={layoutName}
+            onChange={(e) => setLayoutName(e.target.value)}
+            className="bg-slate-950 text-xs text-slate-200 border border-slate-700 rounded px-2 py-0.5 focus:outline-none font-mono cursor-pointer"
+          >
+            <option value="cose">Force-Directed (COSE)</option>
+            <option value="circle">Circular Ring</option>
+            <option value="concentric">Concentric Radial</option>
+            <option value="breadthfirst">Hierarchical Tree</option>
+            <option value="grid">Orthogonal Grid</option>
+          </select>
+
+          <div className="h-4 w-px bg-slate-700 mx-1" />
+
+          {/* Zoom Controls */}
+          <button
+            onClick={handleZoomIn}
+            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            title="Zoom In"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={handleZoomOut}
+            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            title="Zoom Out"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={handleFit}
+            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            title="Fit Canvas"
+          >
+            <Crosshair className="h-3.5 w-3.5" />
+          </button>
+
+          <div className="h-4 w-px bg-slate-700 mx-1" />
+
+          {/* Export PNG */}
+          <button
+            onClick={handleExportPng}
+            className="p-1 rounded hover:bg-slate-800 text-sky-400 hover:text-sky-300 transition-colors"
+            title="Export High-Res PNG"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Fullscreen Toggle */}
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            title="Toggle Fullscreen"
+          >
+            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
+        </div>
       </div>
 
-      {/* Floating Canvas tools */}
-      <div className="absolute top-4 right-4 z-10 flex gap-2 bg-card/90 backdrop-blur border p-1.5 rounded-lg shadow-md">
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleZoomIn} title="Zoom In">
-          <Maximize2 className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleZoomOut} title="Zoom Out">
-          <Minimize2 className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleFit} title="Fit to View">
-          <Locate className="h-4 w-4" />
-        </Button>
-        <div className="w-px bg-border my-1 mx-0.5" />
-        <select
-          value={layoutName}
-          onChange={(e) => handleRunLayout(e.target.value)}
-          className="h-7 rounded border bg-background text-[11px] px-2 focus:outline-none"
-        >
-          <option value="cose">Force Directed (COSE)</option>
-          <option value="grid">Grid Layout</option>
-          <option value="circle">Circular Layout</option>
-          <option value="concentric">Concentric Circles</option>
-          <option value="breadthfirst">Hierarchical (BFS)</option>
-        </select>
-        <div className="w-px bg-border my-1 mx-0.5" />
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-400" onClick={handleExportPng} title="Export PNG Screenshot">
-          <Download className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* CYTOSCAPE CANVAS DOM CONTAINER */}
+      <div ref={containerRef} className="w-full flex-1 min-h-[480px] cursor-grab active:cursor-grabbing" />
 
-      {/* Canvas container */}
-      <div ref={containerRef} className="w-full h-full min-h-[550px] bg-slate-950/20 rounded-lg border relative overflow-hidden" />
+      {nodesData.length === 0 && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-sm z-10 p-6 text-center space-y-2">
+          <Network className="h-10 w-10 text-slate-600 animate-pulse" />
+          <h4 className="text-sm font-bold text-slate-300">Clean Slate — No Network Graph Nodes</h4>
+          <p className="text-xs text-slate-500 max-w-sm">
+            The workspace currently has 0 entities. Ingest new FIR or CDR documents in Data Ingestion, or load the demo cartel from the Dashboard.
+          </p>
+        </div>
+      )}
 
-      {/* Legend overlay */}
-      <div className={`absolute z-10 bg-card/95 border p-3 rounded-lg shadow-md text-[10px] space-y-2 transition-all duration-300 ${
-        layoutName === "circle" 
-          ? "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" 
-          : "bottom-4 left-4"
-      }`}>
-        <div className="font-semibold text-muted-foreground uppercase tracking-wider mb-1">Entity Legend</div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-medium">
-          {Object.entries(ENTITY_STYLES).map(([type, style]) => (
-            <div key={type} className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: style.bg }} />
-              <span className="capitalize">{type.replace("_", " ")}</span>
-            </div>
-          ))}
-          <div className="flex items-center gap-1.5 col-span-2 border-t pt-1.5 mt-1">
-            <span className="h-0.5 w-4 border-t border-dashed border-purple-500" />
-            <span className="text-purple-400">AI Inferred Relationship</span>
-          </div>
+      {/* FLOATING BOTTOM LEGEND */}
+      <div className="absolute bottom-3 left-3 z-10 flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/85 border border-slate-800/90 backdrop-blur-md text-[11px] shadow-lg pointer-events-auto">
+        <span className="text-[10px] font-mono text-slate-500 font-bold uppercase mr-1">ENTITIES:</span>
+        <div className="flex items-center gap-1.5 text-slate-300">
+          <span className="h-2.5 w-2.5 rounded-full bg-sky-500 inline-block"></span>
+          <span>Person</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-slate-300">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block"></span>
+          <span>Phone</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-slate-300">
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block"></span>
+          <span>Vehicle</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-slate-300">
+          <span className="h-2.5 w-2.5 rounded-full bg-purple-500 inline-block"></span>
+          <span>Bank</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-slate-300">
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-500 inline-block"></span>
+          <span>Location</span>
         </div>
       </div>
     </div>

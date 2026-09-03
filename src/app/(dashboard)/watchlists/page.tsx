@@ -30,6 +30,7 @@ interface Watchlist {
 
 // Case-aware dynamic watchlists seeder
 function seedDefaultWatchlists(ents: any[]): Watchlist[] {
+  if (!ents || ents.length === 0) return [];
   const isReacher = ents.some(e => e.canonical_name === "Jack Reacher");
   
   if (isReacher) {

@@ -64,21 +64,6 @@ export default function CaseDetailPage({ params }: PageProps) {
       let docs = await DatabaseClient.getDocuments();
       let ents = await DatabaseClient.getEntities();
       
-      // Dynamic cache self-healing inside subpage detail mount!
-      // Sync if the case match is missing OR if browser localStorage holds no entities!
-      if (isDegradedMode && (!match || ents.length === 0)) {
-        console.log("Stale browser cache detected in detail view. Autosyncing with seed database...");
-        const res = await fetch("/api/demo/load");
-        if (res.ok) {
-          const seedDb = await res.json();
-          localStorage.setItem("kraken_mock_db", JSON.stringify(seedDb));
-          cases = seedDb.cases || [];
-          match = cases.find((c: any) => c.id === id);
-          docs = seedDb.documents || [];
-          ents = seedDb.entities || [];
-        }
-      }
-      
       if (!match) return;
       setCaseFile(match);
 

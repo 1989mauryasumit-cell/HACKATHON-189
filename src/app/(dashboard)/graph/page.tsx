@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,19 @@ import {
   ArrowRight,
   TrendingUp,
   Link2,
-  Loader2
+  Loader2,
+  User,
+  Phone,
+  CreditCard,
+  Car,
+  MapPin,
+  Building,
+  CheckCircle2,
+  Sliders,
+  Sparkles,
+  ExternalLink,
+  Shield,
+  X
 } from "lucide-react";
 import { MockDatabase } from "@/lib/mock-db";
 
@@ -83,27 +96,21 @@ export default function NetworkGraphPage() {
     loadGraphData();
   }, [loadGraphData]);
 
-  // Extract unique community IDs for the filter dropdown
+  // Extract unique community IDs
   const communities = React.useMemo(() => {
     const ids = metrics.map(m => m.community_id).filter(id => id !== undefined);
-    return Array.from(new Set(ids)).sort((a, b) => a - b);
+    return Array.from(new Set(ids)).sort((a: any, b: any) => a - b);
   }, [metrics]);
 
   // Filtering Logic
   const filteredNodes = React.useMemo(() => {
     return entities.filter(node => {
-      // 1. Entity type filter
       if (!selectedTypes[node.entity_type]) return false;
-
-      // 2. Risk score filter
       if (node.risk_score < minRisk) return false;
-
-      // 3. Community filter
       if (selectedCommunity !== "all") {
         const met = metrics.find(m => m.entity_id === node.id);
         if (!met || met.community_id !== Number(selectedCommunity)) return false;
       }
-
       return true;
     });
   }, [entities, minRisk, selectedTypes, selectedCommunity, metrics]);
@@ -115,7 +122,6 @@ export default function NetworkGraphPage() {
     });
   }, [relationships, filteredNodes]);
 
-  // Toggle entity type filter checkbox
   const handleTypeToggle = (type: string) => {
     setSelectedTypes(prev => ({
       ...prev,
@@ -124,8 +130,8 @@ export default function NetworkGraphPage() {
   };
 
   // Run Shortest Path Finder
-  const handleFindPath = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFindPath = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!pathSource || !pathTarget) return;
 
     setPathLoading(true);
@@ -142,7 +148,6 @@ export default function NetworkGraphPage() {
       if (data.paths && data.paths.length > 0) {
         setFoundPaths(data.paths);
         
-        // Match path names to entity IDs to pass to Cytoscape highlight
         const firstPath = data.paths[0] as string[];
         const nodeIds = firstPath.map(name => {
           const match = entities.find(e => e.canonical_name.toLowerCase() === name.toLowerCase());
@@ -151,7 +156,7 @@ export default function NetworkGraphPage() {
 
         setHighlightedPathIds(nodeIds);
       } else {
-        setPathError("No connection paths found up to 4 hops.");
+        setPathError("No connection paths found within 4 network hops.");
       }
     } catch (err: any) {
       setPathError(err.message || "Failed to search paths.");
@@ -160,11 +165,18 @@ export default function NetworkGraphPage() {
     }
   };
 
+  const handleQuickDemoPath = (src: string, tgt: string) => {
+    setPathSource(src);
+    setPathTarget(tgt);
+    setTimeout(() => {
+      handleFindPath();
+    }, 50);
+  };
+
   // Node details loader when clicked
   const handleNodeSelect = (node: any) => {
     setSelectedNode(node);
     
-    // Find all direct relationships connected to this node
     const directRels = relationships.filter(r => 
       r.source_entity_id === node.id || r.target_entity_id === node.id
     ).map(r => {
@@ -177,6 +189,7 @@ export default function NetworkGraphPage() {
         weight: r.weight,
         neighborName: neighbor ? neighbor.canonical_name : "Unknown",
         neighborType: neighbor ? neighbor.entity_type : "unknown",
+        neighborId: targetId,
         isIncoming: !isSource
       };
     });
@@ -191,22 +204,13 @@ export default function NetworkGraphPage() {
       const res = await fetch("/api/graph/recompute", { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Recompute failed.");
-      alert(`Successfully recomputed graph indices!\nProcessed: ${data.nodesProcessed} nodes.`);
+      alert(`Graph Centralities successfully recomputed!\nProcessed: ${data.nodesProcessed} nodes across network topology.`);
       await loadGraphData();
     } catch (err: any) {
       alert("Error recomputing metrics: " + err.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  // Clear path highlights
-  const handleClearPath = () => {
-    setPathSource("");
-    setPathTarget("");
-    setFoundPaths([]);
-    setHighlightedPathIds([]);
-    setPathError("");
   };
 
   const handleExportJson = () => {
@@ -222,25 +226,33 @@ export default function NetworkGraphPage() {
     link.click();
   };
 
+  const selectedNodeMetrics = selectedNode ? metrics.find(m => m.entity_id === selectedNode.id) : null;
+
   return (
-    <div className="space-y-6 flex flex-col h-[calc(100vh-140px)]">
-      {/* Title block */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
+    <div className="space-y-4 flex flex-col h-[calc(100vh-120px)]">
+      {/* HEADER BAR */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 pb-2 border-b border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Network className="h-6 w-6 text-blue-500" />
-            <span>Network Graph Centerpiece</span>
-          </h1>
-          <p className="text-muted-foreground text-xs">
-            Interactive link-analysis workspace plotting suspects, vehicles, addresses, phones, and banks.
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              <Network className="h-6 w-6 text-sky-400" />
+              <span>Criminal Network Analysis Canvas</span>
+            </h1>
+            <span className="text-[10px] font-mono bg-sky-950 text-sky-400 border border-sky-800 px-2 py-0.5 rounded font-bold">
+              {filteredNodes.length} NODES • {filteredEdges.length} EDGES
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Interactive multi-hop link-analysis workspace plotting suspects, phones, shell bank accounts, and vehicles.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRecompute} className="gap-1.5 h-8">
-            <RefreshCw className="h-3.5 w-3.5" />
-            Recompute Centralities
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRecompute} className="text-xs h-8 gap-1.5 border-slate-700">
+            <RefreshCw className="h-3.5 w-3.5 text-sky-400" />
+            Recompute Metrics
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportJson} className="gap-1.5 h-8 text-blue-400">
+          <Button variant="outline" size="sm" onClick={handleExportJson} className="text-xs h-8 gap-1.5 text-sky-400 border-sky-800/80 bg-sky-950/40">
             <Download className="h-3.5 w-3.5" />
             Export Graph JSON
           </Button>
@@ -248,257 +260,343 @@ export default function NetworkGraphPage() {
       </div>
 
       {loading ? (
-        <div className="flex-1 flex flex-col items-center justify-center border border-dashed rounded-lg bg-card/40">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-          <p className="text-sm text-muted-foreground font-mono">Querying network graph tables...</p>
+        <div className="flex-1 flex items-center justify-center rounded-xl border border-slate-800 bg-slate-950/60">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
+            <p className="text-xs font-mono text-slate-400">Loading Network Topology and Centralities...</p>
+          </div>
         </div>
       ) : (
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-0">
-          {/* Controls Sidebar */}
-          <div className="lg:col-span-1 space-y-4 overflow-y-auto pr-2 scrollbar-thin shrink-0">
-            {/* Filters panel */}
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm flex items-center gap-1.5">
-                  <Filter className="h-4 w-4 text-blue-500" />
-                  <span>Graph Filters</span>
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
+          
+          {/* LEFT CONTROLS & PATHFINDER (3 Cols) */}
+          <div className="lg:col-span-3 space-y-3 flex flex-col overflow-y-auto pr-1">
+            
+            {/* Entity Types Filter */}
+            <Card className="border-slate-800 bg-slate-900/80 shrink-0">
+              <CardHeader className="p-3.5 pb-2">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Filter className="h-3.5 w-3.5 text-sky-400" />
+                    Entity Types
+                  </span>
+                  <button
+                    onClick={() => {
+                      const allTrue = Object.values(selectedTypes).every(Boolean);
+                      const next: any = {};
+                      Object.keys(selectedTypes).forEach(k => next[k] = !allTrue);
+                      setSelectedTypes(next);
+                    }}
+                    className="text-[10px] text-sky-400 hover:underline cursor-pointer"
+                  >
+                    Toggle All
+                  </button>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-xs">
-                {/* Risk score range */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between font-semibold">
-                    <span>Minimum Entity Risk</span>
-                    <span className="text-blue-500">{minRisk} / 100</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                    value={minRisk}
-                    onChange={(e) => setMinRisk(Number(e.target.value))}
-                  />
-                </div>
-
-                {/* Louvain Community Select */}
-                <div className="space-y-1.5">
-                  <label className="font-semibold">Louvain Community Group</label>
-                  <select
-                    value={selectedCommunity}
-                    onChange={(e) => setSelectedCommunity(e.target.value)}
-                    className="w-full h-8 px-2 rounded border bg-background"
-                  >
-                    <option value="all">Display All Communities</option>
-                    {communities.map(id => (
-                      <option key={id} value={id}>Community #{id}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Entity types toggles */}
-                <div className="space-y-2">
-                  <label className="font-semibold block mb-1">Entity Categories</label>
-                  <div className="grid grid-cols-2 gap-2 font-medium">
-                    {Object.keys(selectedTypes).map((type) => (
-                      <label key={type} className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedTypes[type]}
-                          onChange={() => handleTypeToggle(type)}
-                          className="rounded border-input text-primary focus:ring-ring h-3.5 w-3.5"
-                        />
-                        <span className="capitalize">{type.replace("_", " ")}</span>
-                      </label>
-                    ))}
-                  </div>
+              <CardContent className="p-3.5 pt-0 space-y-1.5">
+                <div className="grid grid-cols-2 gap-1.5 text-xs">
+                  {Object.entries(selectedTypes).map(([type, checked]) => (
+                    <label
+                      key={type}
+                      className={`flex items-center gap-1.5 p-1.5 rounded border text-[11px] cursor-pointer transition-colors ${
+                        checked ? "bg-slate-800/80 border-slate-700 text-slate-200" : "bg-slate-950/40 border-slate-900 text-slate-500"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => handleTypeToggle(type)}
+                        className="rounded border-slate-700 text-sky-500 focus:ring-0"
+                      />
+                      <span className="capitalize">{type.replace("_", " ")}</span>
+                    </label>
+                  ))}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Connection Path finder */}
-            <Card>
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm flex items-center gap-1.5">
-                  <Route className="h-4 w-4 text-purple-500" />
-                  <span>Shortest Path Finder</span>
+            {/* Risk & Community Sliders */}
+            <Card className="border-slate-800 bg-slate-900/80 shrink-0">
+              <CardHeader className="p-3.5 pb-2">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <Sliders className="h-3.5 w-3.5 text-sky-400" />
+                  Topology Filters
                 </CardTitle>
-                <CardDescription className="text-[10px]">
-                  Find the exact chain of associates connecting any two targets.
+              </CardHeader>
+              <CardContent className="p-3.5 pt-0 space-y-3">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-slate-400 font-mono">
+                    <span>Min Risk Threshold:</span>
+                    <span className="text-sky-400 font-bold">{minRisk} / 100</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={95}
+                    value={minRisk}
+                    onChange={(e) => setMinRisk(Number(e.target.value))}
+                    className="w-full accent-sky-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-400">Louvain Community Partition:</label>
+                  <select
+                    value={selectedCommunity}
+                    onChange={(e) => setSelectedCommunity(e.target.value)}
+                    className="w-full bg-slate-950 text-xs text-slate-200 border border-slate-800 rounded-lg p-1.5 focus:outline-none font-mono"
+                  >
+                    <option value="all">All Clusters ({entities.length} nodes)</option>
+                    {communities.map((c) => (
+                      <option key={c} value={c}>
+                        Cluster #{c} ({c === 0 ? "Delhi Core Cell" : c === 1 ? "UP Supply Branch" : `Cell ${c}`})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Shortest Path Finder */}
+            <Card className="border-slate-800 bg-slate-900/80 flex-1">
+              <CardHeader className="p-3.5 pb-2">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Route className="h-3.5 w-3.5 text-amber-400" />
+                    Shortest Path Finder
+                  </span>
+                  {highlightedPathIds.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setPathSource("");
+                        setPathTarget("");
+                        setFoundPaths([]);
+                        setHighlightedPathIds([]);
+                      }}
+                      className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </CardTitle>
+                <CardDescription className="text-[11px] text-slate-400">
+                  Find hidden intermediary brokers connecting targets.
                 </CardDescription>
               </CardHeader>
-              <form onSubmit={handleFindPath}>
-                <CardContent className="space-y-3 text-xs">
-                  <div className="space-y-1">
-                    <label className="font-semibold text-muted-foreground">Source Suspect Name</label>
-                    <Input
-                      placeholder="e.g. Vikram Jagtap"
-                      value={pathSource}
-                      onChange={(e) => setPathSource(e.target.value)}
-                      required
-                      className="h-8 text-xs"
-                    />
+              <CardContent className="p-3.5 pt-0 space-y-2.5">
+                {/* Demo quick routes */}
+                <div className="space-y-1">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase">Demo Path Presets:</span>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleQuickDemoPath("Vikram Jagtap", "Sandeep Yadav")}
+                      className="text-left text-[11px] p-1.5 rounded bg-slate-950/80 border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 transition-colors flex items-center justify-between"
+                    >
+                      <span>Vikram ➔ Sandeep (Via Broker)</span>
+                      <span className="text-[10px] text-amber-400 font-mono">2 Hops</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickDemoPath("Devendra Maurya", "Ramesh Patel")}
+                      className="text-left text-[11px] p-1.5 rounded bg-slate-950/80 border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 transition-colors flex items-center justify-between"
+                    >
+                      <span>Devendra ➔ Ramesh (Mule Chain)</span>
+                      <span className="text-[10px] text-amber-400 font-mono">1 Hop</span>
+                    </button>
                   </div>
-                  <div className="space-y-1">
-                    <label className="font-semibold text-muted-foreground">Target Suspect Name</label>
-                    <Input
-                      placeholder="e.g. Vijay Shinde"
-                      value={pathTarget}
-                      onChange={(e) => setPathTarget(e.target.value)}
-                      required
-                      className="h-8 text-xs"
-                    />
-                  </div>
+                </div>
 
-                  {pathError && (
-                    <div className="p-2 rounded bg-destructive/10 border border-destructive/20 text-destructive text-[10px]">
-                      {pathError}
-                    </div>
-                  )}
-
-                  {foundPaths.length > 0 && (
-                    <div className="space-y-1.5 border-t pt-2 mt-2">
-                      <div className="flex justify-between items-center text-[10px] text-muted-foreground font-semibold">
-                        <span>Paths Found: {foundPaths.length}</span>
-                        <button type="button" onClick={handleClearPath} className="text-blue-500 hover:underline">
-                          Clear Path
-                        </button>
-                      </div>
-                      <div className="max-h-24 overflow-y-auto space-y-1 bg-muted/40 p-1.5 rounded border text-[10px] font-mono scrollbar-thin">
-                        {foundPaths.map((path, idx) => (
-                          <div key={idx} className="p-1 border-b last:border-0 flex items-center flex-wrap gap-1">
-                            {path.map((step, sidx) => (
-                              <React.Fragment key={sidx}>
-                                {sidx > 0 && <ArrowRight className="h-2.5 w-2.5 text-muted-foreground" />}
-                                <span className={sidx === 0 || sidx === path.length - 1 ? "font-bold text-foreground" : "text-muted-foreground"}>
-                                  {step}
-                                </span>
-                              </React.Fragment>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter className="py-3 border-t bg-muted/10 flex justify-end">
-                  <Button type="submit" size="sm" className="h-7 text-xs" disabled={pathLoading}>
-                    {pathLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Compass className="h-3.5 w-3.5 mr-1" />}
-                    Search Paths
+                <form onSubmit={handleFindPath} className="space-y-2">
+                  <Input
+                    placeholder="Source (e.g. Vikram Jagtap)"
+                    value={pathSource}
+                    onChange={(e) => setPathSource(e.target.value)}
+                    className="h-8 text-xs font-mono"
+                  />
+                  <Input
+                    placeholder="Target (e.g. Sandeep Yadav)"
+                    value={pathTarget}
+                    onChange={(e) => setPathTarget(e.target.value)}
+                    className="h-8 text-xs font-mono"
+                  />
+                  <Button
+                    type="submit"
+                    variant="warning"
+                    size="sm"
+                    className="w-full text-xs font-semibold h-8"
+                    disabled={pathLoading || !pathSource || !pathTarget}
+                  >
+                    {pathLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Route className="h-3.5 w-3.5 mr-1.5" />}
+                    Search Link Path
                   </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </div>
+                </form>
 
-          {/* Cytoscape Canvas Centrepiece */}
-          <div className="lg:col-span-2 min-h-0 flex flex-col h-full bg-card border rounded-xl overflow-hidden shadow-sm relative">
-            <NetworkGraphCanvas
-              nodesData={filteredNodes}
-              edgesData={filteredEdges}
-              metricsData={metrics}
-              onNodeSelect={handleNodeSelect}
-              selectedPathNodeIds={highlightedPathIds}
-            />
-          </div>
+                {pathError && (
+                  <p className="text-[11px] text-rose-400 p-2 rounded bg-rose-950/40 border border-rose-900/60 font-mono">
+                    {pathError}
+                  </p>
+                )}
 
-          {/* Node detail sidebar */}
-          <div className="lg:col-span-1 overflow-y-auto pl-2 pr-1 scrollbar-thin shrink-0">
-            {selectedNode ? (
-              <Card className="border-blue-500/20 bg-muted/5">
-                <CardHeader className="border-b pb-4">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] uppercase font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded">
-                      {selectedNode.entity_type}
-                    </span>
-                    <span className="text-[11px] font-bold font-mono text-amber-500">
-                      Risk: {selectedNode.risk_score || 72}
-                    </span>
-                  </div>
-                  <CardTitle className="text-base mt-2 truncate">{selectedNode.canonical_name}</CardTitle>
-                  <CardDescription className="text-[10px] font-mono">
-                    ID: {selectedNode.id}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-4 text-xs select-none">
-                  {/* Centrality details grid */}
-                  <div>
-                    <h4 className="font-semibold text-muted-foreground uppercase text-[9px] tracking-wider mb-2">
-                      Centrality Scores & Network Indices
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2 font-mono">
-                      {/* Metric widgets */}
-                      <div className="p-2 border rounded bg-card flex flex-col">
-                        <span className="text-[9px] text-muted-foreground">PageRank</span>
-                        <span className="text-sm font-bold text-foreground">
-                          {metrics.find(m => m.entity_id === selectedNode.id)?.pagerank?.toFixed(4) || "0.0021"}
-                        </span>
-                      </div>
-                      <div className="p-2 border rounded bg-card flex flex-col">
-                        <span className="text-[9px] text-muted-foreground">Betweenness</span>
-                        <span className="text-sm font-bold text-foreground">
-                          {metrics.find(m => m.entity_id === selectedNode.id)?.betweenness?.toFixed(2) || "45.00"}
-                        </span>
-                      </div>
-                      <div className="p-2 border rounded bg-card flex flex-col col-span-2 flex-row justify-between items-center">
-                        <span className="text-[9px] text-muted-foreground">Louvain Community Group ID</span>
-                        <span className="text-xs font-bold text-blue-400">
-                          Group #{metrics.find(m => m.entity_id === selectedNode.id)?.community_id ?? "0"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Attributes list */}
-                  {selectedNode.attributes && Object.keys(selectedNode.attributes).length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-muted-foreground uppercase text-[9px] tracking-wider mb-1.5">
-                        Suspect dossier attributes
-                      </h4>
-                      <div className="space-y-1 p-2 bg-card border rounded font-mono text-[10px]">
-                        {Object.entries(selectedNode.attributes).map(([key, val]) => (
-                          <div key={key} className="flex justify-between py-0.5 border-b last:border-b-0 border-border/50">
-                            <span className="text-muted-foreground capitalize">{key}:</span>
-                            <span className="text-foreground truncate max-w-[140px]" title={String(val)}>{String(val)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Direct connection links */}
-                  <div>
-                    <h4 className="font-semibold text-muted-foreground uppercase text-[9px] tracking-wider mb-2 flex justify-between">
-                      <span>Direct Links count:</span>
-                      <span className="text-primary font-mono">{nodeConnections.length}</span>
-                    </h4>
-                    <div className="max-h-48 overflow-y-auto border rounded divide-y bg-card font-mono text-[10px] scrollbar-thin">
-                      {nodeConnections.map((conn, idx) => (
-                        <div key={idx} className="p-2 flex justify-between items-center">
-                          <div className="overflow-hidden mr-2">
-                            <span className="font-bold block truncate" title={conn.neighborName}>
-                              {conn.neighborName}
-                            </span>
-                            <span className="text-[9px] text-muted-foreground uppercase">{conn.neighborType}</span>
-                          </div>
-                          <span className="shrink-0 text-[9px] bg-muted px-1.5 py-0.5 rounded font-semibold text-blue-400 capitalize">
-                            {conn.relation_type}
+                {foundPaths.length > 0 && (
+                  <div className="p-2.5 rounded-lg bg-amber-950/30 border border-amber-500/30 space-y-1.5 text-xs">
+                    <p className="font-bold text-amber-300 flex items-center gap-1 text-[11px]">
+                      <Sparkles className="h-3 w-3" /> Path Found ({foundPaths[0].length - 1} Hops):
+                    </p>
+                    <div className="space-y-1 font-mono text-[11px] text-slate-200">
+                      {foundPaths[0].map((step, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5">
+                          <span className="h-4 w-4 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-[9px] font-bold">
+                            {idx + 1}
                           </span>
+                          <span className={idx === 1 && foundPaths[0].length === 3 ? "text-amber-300 font-bold" : ""}>
+                            {step}
+                          </span>
+                          {idx === 1 && foundPaths[0].length === 3 && (
+                            <span className="text-[9px] bg-amber-500/30 text-amber-200 px-1 rounded">BROKER</span>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="border-dashed flex flex-col items-center justify-center p-8 text-center h-[50vh] text-xs">
-                <Info className="h-6 w-6 text-blue-500/40 mb-2 animate-pulse" />
-                <CardTitle className="text-xs font-semibold">Inspection Panel</CardTitle>
-                <CardDescription className="max-w-[160px] mt-1">
-                  Click on any node in the canvas to view its network centrality scores, metadata, and direct connections list.
-                </CardDescription>
-              </Card>
-            )}
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* CENTER CANVAS & RIGHT NODE INSPECTOR (9 Cols) */}
+          <div className="lg:col-span-9 flex flex-col min-h-[500px] h-full relative">
+            <div className="flex-1 w-full h-full relative">
+              <NetworkGraphCanvas
+                nodesData={filteredNodes}
+                edgesData={filteredEdges}
+                metricsData={metrics}
+                onNodeSelect={handleNodeSelect}
+                selectedPathNodeIds={highlightedPathIds}
+              />
+
+              {/* SLIDE-OVER NODE INSPECTOR PANEL */}
+              {selectedNode && (
+                <div className="absolute top-3 right-3 bottom-3 w-80 sm:w-96 rounded-xl border border-slate-700/80 bg-slate-950/95 backdrop-blur-xl shadow-2xl p-4 flex flex-col z-20 overflow-y-auto animate-in slide-in-from-right-10 duration-200">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center font-bold text-xs">
+                        {selectedNode.entity_type === "person" ? <User className="h-4 w-4" />
+                          : selectedNode.entity_type === "phone" ? <Phone className="h-4 w-4 text-emerald-400" />
+                          : selectedNode.entity_type === "bank_account" ? <CreditCard className="h-4 w-4 text-purple-400" />
+                          : selectedNode.entity_type === "vehicle" ? <Car className="h-4 w-4 text-amber-400" />
+                          : <Building className="h-4 w-4 text-pink-400" />}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-white truncate max-w-[200px]">
+                          {selectedNode.canonical_name}
+                        </h3>
+                        <p className="text-[10px] font-mono text-slate-400 uppercase">
+                          {selectedNode.entity_type.replace("_", " ")}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedNode(null)}
+                      className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-4 py-3 flex-1">
+                    {/* Risk Score & Status */}
+                    <div className="rounded-lg p-3 bg-slate-900 border border-slate-800 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-mono uppercase">Calculated Risk Index</span>
+                        <div className="text-xl font-bold font-mono text-rose-400">
+                          {selectedNode.risk_score} <span className="text-xs text-slate-500 font-normal">/ 100</span>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase ${
+                        selectedNode.risk_score >= 80 ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                          : selectedNode.risk_score >= 50 ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                          : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      }`}>
+                        {selectedNode.risk_score >= 80 ? "CRITICAL THREAT" : selectedNode.risk_score >= 50 ? "SUSPECT" : "LOW RISK"}
+                      </span>
+                    </div>
+
+                    {/* Centrality Indices */}
+                    {selectedNodeMetrics && (
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
+                          GRAPH CENTRALITY INDICES
+                        </span>
+                        <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                          <div className="p-2 rounded bg-slate-900/60 border border-slate-800">
+                            <span className="text-[10px] text-slate-500 block">PAGERANK</span>
+                            <span className="text-sky-400 font-bold text-sm">
+                              {Number(selectedNodeMetrics.pagerank || 0).toFixed(4)}
+                            </span>
+                          </div>
+                          <div className="p-2 rounded bg-slate-900/60 border border-slate-800">
+                            <span className="text-[10px] text-slate-500 block">BETWEENNESS</span>
+                            <span className="text-amber-400 font-bold text-sm">
+                              {Number(selectedNodeMetrics.betweenness || 0).toFixed(1)}
+                            </span>
+                          </div>
+                          <div className="p-2 rounded bg-slate-900/60 border border-slate-800">
+                            <span className="text-[10px] text-slate-500 block">CLOSENESS</span>
+                            <span className="text-purple-400 font-bold text-sm">
+                              {Number(selectedNodeMetrics.closeness || 0).toFixed(3)}
+                            </span>
+                          </div>
+                          <div className="p-2 rounded bg-slate-900/60 border border-slate-800">
+                            <span className="text-[10px] text-slate-500 block">DEGREE LINKS</span>
+                            <span className="text-emerald-400 font-bold text-sm">
+                              {selectedNodeMetrics.degree || nodeConnections.length}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Direct Connections */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
+                        DIRECT CONNECTIONS ({nodeConnections.length})
+                      </span>
+                      <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
+                        {nodeConnections.length === 0 ? (
+                          <p className="text-xs text-slate-500 italic">No direct edges loaded.</p>
+                        ) : (
+                          nodeConnections.map((conn, idx) => (
+                            <div
+                              key={idx}
+                              className="p-2 rounded bg-slate-900/50 border border-slate-800/80 flex items-center justify-between text-xs"
+                            >
+                              <div className="truncate max-w-[170px]">
+                                <p className="font-semibold text-slate-200 truncate">{conn.neighborName}</p>
+                                <span className="text-[10px] text-sky-400 font-mono">{conn.relation_type}</span>
+                              </div>
+                              <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                                W: {conn.weight}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Footer */}
+                  <div className="pt-3 border-t border-slate-800 space-y-2">
+                    <Link href={`/entity/${selectedNode.id}`} className="w-full block">
+                      <Button variant="cyber" size="sm" className="w-full text-xs font-semibold gap-1.5">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Open Comprehensive Dossier
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -5,22 +5,14 @@ import * as path from "path";
 
 export async function POST() {
   try {
-    const mockFilePath = path.join(process.cwd(), "src", "lib", "pipeline", "mock_database.json");
-    if (!fs.existsSync(mockFilePath)) {
-      return NextResponse.json(
-        { error: "Seed data not found. Please run generator script." },
-        { status: 500 }
-      );
-    }
-
-    const raw = fs.readFileSync(mockFilePath, "utf8");
-    const dump = JSON.parse(raw);
+    const { generateDatabase } = require("@/lib/pipeline/synthetic-generator");
+    const dump = generateDatabase();
 
     const result = await DatabaseClient.loadMockDump(dump);
 
     return NextResponse.json({
       success: true,
-      message: `Database loaded successfully with ${result.count} entities.`,
+      message: `Ground-truth benchmark cartel loaded with ${result.count} entities.`,
       entitiesCount: result.count,
       dbDump: dump
     });
@@ -35,16 +27,8 @@ export async function POST() {
 
 export async function GET() {
   try {
-    const mockFilePath = path.join(process.cwd(), "src", "lib", "pipeline", "mock_database.json");
-    if (!fs.existsSync(mockFilePath)) {
-      return NextResponse.json(
-        { error: "Seed data not found. Please run generator script." },
-        { status: 500 }
-      );
-    }
-
-    const raw = fs.readFileSync(mockFilePath, "utf8");
-    const dump = JSON.parse(raw);
+    const { generateDatabase } = require("@/lib/pipeline/synthetic-generator");
+    const dump = generateDatabase();
     return NextResponse.json(dump);
   } catch (error: any) {
     console.error("Failed to serve demo data:", error);

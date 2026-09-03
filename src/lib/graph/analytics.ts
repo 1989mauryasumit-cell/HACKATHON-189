@@ -328,7 +328,7 @@ export class GraphAnalyticsEngine {
           communitiesCount: new Set(db.entity_metrics.map(m => m.community_id)).size,
           bridges: [],
           cutVertices: [],
-          lastComputedAt: db.entity_metrics[0].computed_at
+          lastComputedAt: db.entity_metrics[0].computed_at || db.entity_metrics[0].updated_at || new Date().toISOString()
         };
         return this.lastResult;
       }

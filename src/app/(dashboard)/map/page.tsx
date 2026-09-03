@@ -1,20 +1,21 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { MapPin, Info, ShieldAlert, Loader2, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MapPin, Info, ShieldAlert, Loader2, Calendar, Radio, Users, Network, Compass, ArrowRight } from "lucide-react";
 import { DatabaseClient } from "@/lib/supabase";
 import dynamic from "next/dynamic";
 
-// Dynamic import with SSR disabled to prevent server-side Leaflet build issues
 const NetworkLeafletMap = dynamic(
   () => import("@/components/network-leaflet-map"),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-[550px] bg-slate-950/20 border rounded-lg flex flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground mt-2 font-mono">Initializing Leaflet map layers...</p>
+      <div className="w-full h-[550px] bg-slate-950/80 border border-slate-800 rounded-xl flex flex-col items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
+        <p className="text-xs text-slate-400 mt-2 font-mono">Initializing Leaflet Geo-Spatial Layers...</p>
       </div>
     )
   }
@@ -44,100 +45,112 @@ export default function MapPage() {
   );
 
   return (
-    <div className="space-y-6 flex flex-col h-[calc(100vh-140px)]">
-      {/* Title */}
-      <div className="shrink-0">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <MapPin className="h-6 w-6 text-blue-500" />
-          <span>Geographic Cell-Tower Map</span>
-        </h1>
-        <p className="text-muted-foreground text-xs">
-          Plot cellular tower pings, estimate geographical range circles, and analyze suspect co-location logs.
-        </p>
+    <div className="space-y-4 flex flex-col h-[calc(100vh-120px)]">
+      {/* TITLE BAR */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0 pb-2 border-b border-slate-800">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              <MapPin className="h-6 w-6 text-sky-400" />
+              <span>Geo-Spatial Cell Tower Triangulation</span>
+            </h1>
+            <span className="text-[10px] font-mono bg-sky-950 text-sky-400 border border-sky-800 px-2 py-0.5 rounded font-bold uppercase">
+              DELHI & UP SECTOR
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Plot cellular tower pings, estimate geographical range circles, and analyze suspect co-location overlaps.
+          </p>
+        </div>
+
+        <Link href="/timeline">
+          <Button variant="outline" size="sm" className="text-xs font-semibold gap-1.5 border-slate-700">
+            <Compass className="h-3.5 w-3.5 text-sky-400" />
+            View CDR Action Timeline
+          </Button>
+        </Link>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-0">
-        {/* Map Centerpiece canvas */}
-        <div className="lg:col-span-3 min-h-0 flex flex-col h-full bg-card border rounded-xl overflow-hidden shadow-sm relative">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
+        {/* LEAFLET MAP CANVAS (8 Cols) */}
+        <div className="lg:col-span-8 min-h-0 flex flex-col h-full bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden shadow-xl relative">
           {loading ? (
-            <div className="w-full h-full min-h-[500px] flex items-center justify-center bg-slate-950/10">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <div className="w-full h-full min-h-[500px] flex items-center justify-center bg-slate-950">
+              <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
             </div>
           ) : (
             <NetworkLeafletMap documents={documents} />
           )}
         </div>
 
-        {/* Sidebar logs details */}
-        <div className="lg:col-span-1 space-y-4 overflow-y-auto pr-2 scrollbar-thin shrink-0 select-none">
-          <Card className="border-blue-500/20 bg-muted/5">
-            <CardHeader className="py-4">
-              <CardTitle className="text-xs uppercase text-muted-foreground tracking-wider flex items-center gap-1.5">
-                <ShieldAlert className="h-4.5 w-4.5 text-blue-500" />
-                <span>Geographic Co-location Logs</span>
+        {/* SIDEBAR LOGS & CO-LOCATION DETECTIONS (4 Cols) */}
+        <div className="lg:col-span-4 space-y-3 overflow-y-auto pr-1">
+          <Card className="border-slate-800 bg-slate-900/90">
+            <CardHeader className="p-3.5 pb-2">
+              <CardTitle className="text-xs uppercase text-slate-300 tracking-wider flex items-center gap-1.5">
+                <ShieldAlert className="h-4 w-4 text-rose-400" />
+                <span>Geographic Co-location Traces</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-xs">
+            <CardContent className="p-3.5 pt-0 space-y-3 text-xs">
               {isReacherCase ? (
-                // Reacher Case Logs
                 <>
-                  <div className="p-3 border rounded-lg bg-card/80 space-y-2 border-red-500/20 bg-red-500/5">
-                    <div className="font-bold text-red-400 flex items-center justify-between">
+                  <div className="p-3 border rounded-xl bg-rose-950/20 border-rose-500/30 space-y-1.5">
+                    <div className="font-bold text-rose-300 flex items-center justify-between text-xs">
                       <span>Underpass Overlap Spike</span>
-                      <span className="text-[9px] bg-red-500/20 text-red-300 px-1 rounded flex items-center gap-0.5">
-                        <Calendar className="h-2.5 w-2.5" /> 12 Oct
+                      <span className="text-[10px] font-mono bg-rose-500/20 text-rose-300 px-1.5 py-0.2 rounded border border-rose-500/30">
+                        12 Oct, 22:14
                       </span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Burner phone <strong>+91 92203 44502</strong> registered on TOWER-MARG-01 within the murder timeline of Joe Reacher, placing it directly at the crime scene.
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Burner phone <strong className="text-slate-200 font-mono">+91 92203 44502</strong> registered on TOWER-MARG-01 within murder timeline.
                     </p>
                   </div>
 
-                  <div className="p-3 border rounded-lg bg-card/80 space-y-2">
-                    <div className="font-bold text-foreground flex items-center justify-between">
+                  <div className="p-3 border rounded-xl bg-slate-950/60 border-slate-800 space-y-1.5">
+                    <div className="font-bold text-slate-200 flex items-center justify-between text-xs">
                       <span>Kliner Warehouse Sighting</span>
-                      <span className="text-[9px] bg-blue-500/20 text-blue-300 px-1 rounded flex items-center gap-0.5">
-                        <Calendar className="h-2.5 w-2.5" /> 14 Oct
+                      <span className="text-[10px] font-mono bg-sky-500/20 text-sky-300 px-1.5 py-0.2 rounded border border-sky-500/30">
+                        14 Oct, 03:45
                       </span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Surveillance logs trace Kliner's custom Bentley <strong>GA-04-XX-4444</strong> active within range circle of TOWER-MARG-03 during late night hours.
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Surveillance traces Bentley <strong className="text-slate-200 font-mono">GA-04-XX-4444</strong> active within range circle of TOWER-MARG-03.
                     </p>
                   </div>
                 </>
               ) : (
-                // Delhi default Cartel logs
                 <>
-                  <div className="p-3 border rounded-lg bg-card/80 space-y-2 border-red-500/20 bg-red-500/5">
-                    <div className="font-bold text-red-400 flex items-center justify-between">
+                  <div className="p-3 border rounded-xl bg-rose-950/20 border-rose-500/30 space-y-1.5">
+                    <div className="font-bold text-rose-300 flex items-center justify-between text-xs">
                       <span>CONN-01 Co-location Spike</span>
-                      <span className="text-[9px] bg-red-500/20 text-red-300 px-1 rounded flex items-center gap-0.5">
-                        <Calendar className="h-2.5 w-2.5" /> 10 Apr
+                      <span className="text-[10px] font-mono bg-rose-500/20 text-rose-300 px-1.5 py-0.2 rounded border border-rose-500/30">
+                        10 Apr, 11:22
                       </span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Devendra Maurya and Vikram Jagtap registered on tower TOWER-DEL-CONN-01 within 2 minutes of each other, suggesting a physical handoff.
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Devendra Maurya and Vikram Jagtap registered on tower <strong className="text-slate-200 font-mono">TOWER-DEL-CONN-01</strong> within 2 minutes of each other.
                     </p>
                   </div>
 
-                  <div className="p-3 border rounded-lg bg-card/80 space-y-2">
-                    <div className="font-bold text-foreground flex items-center justify-between">
+                  <div className="p-3 border rounded-xl bg-slate-950/60 border-slate-800 space-y-1.5">
+                    <div className="font-bold text-slate-200 flex items-center justify-between text-xs">
                       <span>LKO-02 Hazratganj Activity</span>
-                      <span className="text-[9px] bg-blue-500/20 text-blue-300 px-1 rounded flex items-center gap-0.5">
-                        <Calendar className="h-2.5 w-2.5" /> 12 Apr
+                      <span className="text-[10px] font-mono bg-sky-500/20 text-sky-300 px-1.5 py-0.2 rounded border border-sky-500/30">
+                        12 Apr, 23:10
                       </span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
                       UP Cartel members (Sandeep Yadav, Prem Chopra) active on Lucknow tower Hazratganj, exchanging 31 pings during late-night hours.
                     </p>
                   </div>
                 </>
               )}
 
-              <div className="p-3 border border-dashed rounded-lg bg-card/20 flex gap-2">
-                <Info className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  Click on any marker on the map to inspect coordinates, ranges, timeline dates, and tower log details.
+              <div className="p-3 border border-sky-500/20 rounded-xl bg-sky-950/20 flex gap-2">
+                <Info className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Click on any glowing radar marker on the map to inspect coordinates, estimated range radiuses, and cell logs.
                 </p>
               </div>
             </CardContent>
