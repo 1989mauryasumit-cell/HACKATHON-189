@@ -23,7 +23,8 @@ import {
   Car,
   Shield,
   ArrowRight,
-  Database
+  Database,
+  Trash2
 } from "lucide-react";
 import { DatabaseClient, isDegradedMode } from "@/lib/supabase";
 import { processDocumentPipeline } from "@/lib/pipeline/processor";
@@ -73,6 +74,8 @@ export default function IngestionPage() {
       setJobs(docs.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
       if (docs.length > 0 && !selectedDoc) {
         setSelectedDoc(docs[0]);
+      } else if (docs.length === 0) {
+        setSelectedDoc(null);
       }
     } catch (err) {
       console.error("Failed to load documents", err);
@@ -87,6 +90,37 @@ export default function IngestionPage() {
     setDocTitle(preset.title);
     setDocType(preset.type);
     setPasteText(preset.text);
+  };
+
+  const handleClearAllDocs = async () => {
+    try {
+      if (isDegradedMode) {
+        const db = MockDatabase.load();
+        db.documents = [];
+        MockDatabase.save(db);
+      }
+      setJobs([]);
+      setSelectedDoc(null);
+    } catch (err) {
+      console.error("Failed to clear all documents", err);
+    }
+  };
+
+  const handleDeleteDoc = async (docId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      if (isDegradedMode) {
+        const db = MockDatabase.load();
+        db.documents = db.documents.filter(d => d.id !== docId);
+        MockDatabase.save(db);
+      }
+      setJobs(prev => prev.filter(d => d.id !== docId));
+      if (selectedDoc?.id === docId) {
+        setSelectedDoc(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete document", err);
+    }
   };
 
   const handleIngestText = async (e: React.FormEvent) => {
@@ -160,91 +194,108 @@ export default function IngestionPage() {
           </p>
         </div>
 
-        <Link href="/graph">
-          <Button variant="cyber" size="sm" className="text-xs font-semibold gap-1.5">
-            <Network className="h-3.5 w-3.5" />
-            View in Network Graph
-          </Button>
-        </Link>
-      </div>
-
-      {/* 3-STAGE PIPELINE ANIMATED STATUS BANNER */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {/* Stage 1 */}
-        <div className={`p-3 rounded-xl border transition-all ${
-          activeStage === 1
-            ? "bg-sky-500/20 border-sky-400 shadow-lg shadow-sky-500/20 animate-pulse"
-            : "bg-slate-900/80 border-slate-800"
-        }`}>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold text-sky-400 uppercase">STAGE 1</span>
-            <Cpu className="h-4 w-4 text-sky-400" />
-          </div>
-          <h4 className="text-xs font-bold text-slate-100 mt-1">Regex Matcher</h4>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Detects +91 phones, vehicle plates (DL-..), bank account IDs, and timestamps.
-          </p>
-        </div>
-
-        {/* Stage 2 */}
-        <div className={`p-3 rounded-xl border transition-all ${
-          activeStage === 2
-            ? "bg-purple-500/20 border-purple-400 shadow-lg shadow-purple-500/20 animate-pulse"
-            : "bg-slate-900/80 border-slate-800"
-        }`}>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold text-purple-400 uppercase">STAGE 2</span>
-            <Sparkles className="h-4 w-4 text-purple-400" />
-          </div>
-          <h4 className="text-xs font-bold text-slate-100 mt-1">Gemini JSON Extractor</h4>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Parses suspects, roles, ownerships, and called/transacted relational edges.
-          </p>
-        </div>
-
-        {/* Stage 3 */}
-        <div className={`p-3 rounded-xl border transition-all ${
-          activeStage === 3
-            ? "bg-emerald-500/20 border-emerald-400 shadow-lg shadow-emerald-500/20 animate-pulse"
-            : "bg-slate-900/80 border-slate-800"
-        }`}>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase">STAGE 3</span>
-            <Users className="h-4 w-4 text-emerald-400" />
-          </div>
-          <h4 className="text-xs font-bold text-slate-100 mt-1">Fuzzy Entity Resolver</h4>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Phonetic Metaphone & Jaro-Winkler disambiguation to collapse duplicate suspect identities.
-          </p>
+        <div className="flex items-center gap-2">
+          <Link href="/graph">
+            <Button variant="outline" size="sm" className="text-xs font-semibold gap-1.5 border-slate-700">
+              <Network className="h-3.5 w-3.5 text-sky-400" />
+              View Network Graph
+            </Button>
+          </Link>
         </div>
       </div>
+
+      {/* 3-STAGE PIPELINE ARCHITECTURE VISUALIZER */}
+      <Card className="border-slate-800 bg-slate-900/90 shadow-xl overflow-hidden relative">
+        <div className="p-4">
+          <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <Cpu className="h-4 w-4 text-purple-400" />
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+                CASCADE EXTRACTION PIPELINE STATUS
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+              {loading ? "PIPELINE PROCESSING..." : "IDLE / READY"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Stage 1 */}
+            <div className={`p-3 rounded-xl border transition-all ${
+              activeStage === 1
+                ? "bg-sky-500/15 border-sky-500 text-sky-300 ring-1 ring-sky-500"
+                : "bg-slate-950/60 border-slate-800 text-slate-400"
+            }`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-mono font-bold uppercase">STAGE 01</span>
+                {activeStage === 1 ? <Loader2 className="h-3 w-3 animate-spin text-sky-400" /> : <CheckCircle2 className="h-3 w-3 text-slate-600" />}
+              </div>
+              <h4 className="font-bold text-xs text-white">Deterministic Pattern Regex</h4>
+              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                Extracts Indian phones (+91), PANs, bank accounts, and state registration plates.
+              </p>
+            </div>
+
+            {/* Stage 2 */}
+            <div className={`p-3 rounded-xl border transition-all ${
+              activeStage === 2
+                ? "bg-purple-500/15 border-purple-500 text-purple-300 ring-1 ring-purple-500"
+                : "bg-slate-950/60 border-slate-800 text-slate-400"
+            }`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-mono font-bold uppercase">STAGE 02</span>
+                {activeStage === 2 ? <Loader2 className="h-3 w-3 animate-spin text-purple-400" /> : <Sparkles className="h-3 w-3 text-slate-600" />}
+              </div>
+              <h4 className="font-bold text-xs text-white">Gemini LLM Semantic NER</h4>
+              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                Extracts suspect names, crime roles, contextual relationships, and confidence scores.
+              </p>
+            </div>
+
+            {/* Stage 3 */}
+            <div className={`p-3 rounded-xl border transition-all ${
+              activeStage === 3
+                ? "bg-emerald-500/15 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500"
+                : "bg-slate-950/60 border-slate-800 text-slate-400"
+            }`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-mono font-bold uppercase">STAGE 03</span>
+                {activeStage === 3 ? <Loader2 className="h-3 w-3 animate-spin text-emerald-400" /> : <Layers className="h-3 w-3 text-slate-600" />}
+              </div>
+              <h4 className="font-bold text-xs text-white">Fuzzy Jaro-Winkler Resolver</h4>
+              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                Disambiguates phonetic duplicates (&gt;88% similarity) and merges aliases into canonical profiles.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-12">
-        {/* LEFT COLUMN: INGESTION EDITOR & SAMPLES (6 Cols) */}
+        {/* LEFT COLUMN: INGESTION FORM & PRESETS (6 Cols) */}
         <div className="lg:col-span-6 space-y-4">
           <Card className="border-slate-800 bg-slate-900/80">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-sky-400" />
-                  Document Ingestion Console
-                </CardTitle>
-                <span className="text-[10px] font-mono text-slate-500">Plaintext / Police Reports</span>
-              </div>
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Upload className="h-4 w-4 text-sky-400" />
+                Raw Document Submission Terminal
+              </CardTitle>
               <CardDescription className="text-xs text-slate-400">
-                Load sample intelligence narratives or type/paste your unstructured case notes.
+                Paste investigative text or select a preset operational case file.
               </CardDescription>
             </CardHeader>
-
             <form onSubmit={handleIngestText}>
               <CardContent className="space-y-3 pt-0">
-                {/* Sample Presets */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase">Load Intelligence Templates:</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                    {PRESET_TEMPLATES.map((preset, i) => (
+                {/* 1-Click Operational Presets */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    1-Click Operational Templates:
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {PRESET_TEMPLATES.map((preset, idx) => (
                       <button
-                        key={i}
+                        key={idx}
                         type="button"
                         onClick={() => handleApplyPreset(preset)}
                         className="text-left p-1.5 rounded-lg border border-slate-800 bg-slate-950/80 hover:border-sky-500/50 hover:bg-slate-900 text-[11px] text-slate-300 transition-colors cursor-pointer"
@@ -344,53 +395,85 @@ export default function IngestionPage() {
               <div>
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
                   <Layers className="h-4 w-4 text-emerald-400" />
-                  Processed Case Documents ({jobs.length})
+                  Ingestion Processing Jobs ({jobs.length})
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
                   Select a document to inspect raw text and extraction metadata.
                 </CardDescription>
               </div>
+
+              {jobs.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearAllDocs}
+                  className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 gap-1 h-7 px-2 cursor-pointer"
+                  title="Remove all ingestion jobs and documents"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Clear All Jobs
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                {jobs.map((doc) => {
-                  const isSelected = selectedDoc?.id === doc.id;
-                  return (
-                    <div
-                      key={doc.id}
-                      onClick={() => setSelectedDoc(doc)}
-                      className={`p-3 rounded-lg border transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-slate-800/90 border-sky-500/60 shadow-md"
-                          : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded uppercase border bg-sky-500/20 text-sky-300 border-sky-500/40">
-                            {doc.source_type}
-                          </span>
-                          <h4 className="text-xs font-bold text-slate-200 truncate max-w-[200px]">
-                            {doc.title}
-                          </h4>
+              {jobs.length === 0 ? (
+                <div className="p-12 text-center rounded-xl border border-dashed border-slate-800 bg-slate-950/40 space-y-2">
+                  <FileText className="h-8 w-8 text-slate-600 mx-auto" />
+                  <p className="text-xs font-semibold text-slate-300">No Ingestion Jobs Found</p>
+                  <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                    All processing jobs have been cleared. Submit a new document on the left to start a fresh extraction cascade.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                  {jobs.map((doc) => {
+                    const isSelected = selectedDoc?.id === doc.id;
+                    return (
+                      <div
+                        key={doc.id}
+                        onClick={() => setSelectedDoc(doc)}
+                        className={`p-3 rounded-lg border transition-all cursor-pointer relative group ${
+                          isSelected
+                            ? "bg-slate-800/90 border-sky-500/60 shadow-md"
+                            : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded uppercase border bg-sky-500/20 text-sky-300 border-sky-500/40">
+                              {doc.source_type}
+                            </span>
+                            <h4 className="text-xs font-bold text-slate-200 truncate max-w-[180px]">
+                              {doc.title}
+                            </h4>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" /> Processed
+                            </span>
+                            <button
+                              onClick={(e) => handleDeleteDoc(doc.id, e)}
+                              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-rose-950/60 text-slate-500 hover:text-rose-400 transition-all cursor-pointer"
+                              title="Delete this job"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
-                        <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" /> Processed
-                        </span>
-                      </div>
 
-                      <p className="text-[11px] text-slate-400 mt-2 line-clamp-2 font-mono">
-                        {doc.raw_text}
-                      </p>
+                        <p className="text-[11px] text-slate-400 mt-2 line-clamp-2 font-mono">
+                          {doc.raw_text}
+                        </p>
 
-                      <div className="mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] font-mono text-slate-500">
-                        <span>ID: {doc.id}</span>
-                        <span>{doc.created_at?.split("T")[0]}</span>
+                        <div className="mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] font-mono text-slate-500">
+                          <span>ID: {doc.id}</span>
+                          <span>{doc.created_at?.split("T")[0]}</span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
