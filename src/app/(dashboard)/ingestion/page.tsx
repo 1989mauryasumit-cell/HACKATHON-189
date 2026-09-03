@@ -63,6 +63,7 @@ export default function IngestionPage() {
   const [docTitle, setDocTitle] = React.useState(PRESET_TEMPLATES[0].title);
   const [docType, setDocType] = React.useState<string>("fir");
   const [jobs, setJobs] = React.useState<any[]>([]);
+  const [cases, setCases] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [processingId, setProcessingId] = React.useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = React.useState<any | null>(null);
@@ -70,11 +71,18 @@ export default function IngestionPage() {
 
   const loadDocuments = React.useCallback(async () => {
     try {
-      const docs = await DatabaseClient.getDocuments();
-      setJobs(docs.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
-      if (docs.length > 0 && !selectedDoc) {
-        setSelectedDoc(docs[0]);
-      } else if (docs.length === 0) {
+      const [docs, caseList] = await Promise.all([
+        DatabaseClient.getDocuments(),
+        DatabaseClient.getCases()
+      ]);
+      setCases(caseList);
+
+      // Only show active unarchived documents in Ingestion Processing Jobs
+      const activeDocs = docs.filter((d: any) => !d.is_archived);
+      setJobs(activeDocs.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      if (activeDocs.length > 0 && !selectedDoc) {
+        setSelectedDoc(activeDocs[0]);
+      } else if (activeDocs.length === 0) {
         setSelectedDoc(null);
       }
     } catch (err) {
@@ -90,6 +98,28 @@ export default function IngestionPage() {
     setDocTitle(preset.title);
     setDocType(preset.type);
     setPasteText(preset.text);
+  };
+
+  const handleArchiveJobsToCase = async (caseId: string) => {
+    if (!caseId) return;
+    try {
+      if (isDegradedMode) {
+        const db = MockDatabase.load();
+        const targetCase = db.cases.find(c => c.id === caseId);
+        db.documents.forEach(d => {
+          if (!d.is_archived) {
+            d.case_id = caseId;
+            (d as any).is_archived = true;
+            (d as any).archived_to_case_number = targetCase?.case_number || caseId;
+          }
+        });
+        MockDatabase.save(db);
+      }
+      alert(`All active ingestion jobs have been stored into Case Diary #${caseId}!\n\nActive Ingestion Processing Jobs queue is now clear.`);
+      await loadDocuments();
+    } catch (err) {
+      console.error("Failed to archive jobs to case:", err);
+    }
   };
 
   const handleClearAllDocs = async () => {
@@ -402,18 +432,40 @@ export default function IngestionPage() {
                 </CardDescription>
               </div>
 
-              {jobs.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearAllDocs}
-                  className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 gap-1 h-7 px-2 cursor-pointer"
-                  title="Remove all ingestion jobs and documents"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Clear All Jobs
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {cases.length > 0 && jobs.length > 0 && (
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleArchiveJobsToCase(e.target.value);
+                        e.target.value = "";
+                      }
+                    }}
+                    defaultValue=""
+                    className="h-7 bg-slate-950 text-[11px] text-emerald-400 border border-emerald-500/40 rounded px-2 focus:outline-none font-mono cursor-pointer"
+                  >
+                    <option value="" disabled>📦 Archive to Case Diary...</option>
+                    {cases.map((c) => (
+                      <option key={c.id} value={c.id} className="text-slate-200 bg-slate-900">
+                        {c.case_number}: {c.title.slice(0, 25)}...
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {jobs.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearAllDocs}
+                    className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 gap-1 h-7 px-2 cursor-pointer"
+                    title="Remove all ingestion jobs and documents"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Clear All
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="pt-0">
               {jobs.length === 0 ? (

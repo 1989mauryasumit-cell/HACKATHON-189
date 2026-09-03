@@ -21,6 +21,8 @@ export interface Document {
   mime_type: string;
   status: 'pending' | 'queued' | 'processing' | 'processed' | 'failed';
   error_message?: string;
+  case_id?: string;
+  is_archived?: boolean;
   created_at: string;
 }
 

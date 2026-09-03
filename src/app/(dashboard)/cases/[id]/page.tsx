@@ -15,12 +15,17 @@ import {
   Loader2,
   AlertTriangle,
   PenTool,
-  Bookmark
+  Bookmark,
+  CheckCircle2,
+  ShieldCheck,
+  Archive,
+  ArrowRight,
+  UserCheck,
+  Check
 } from "lucide-react";
 import { DatabaseClient, isDegradedMode } from "@/lib/supabase";
-import { getClientSession } from "@/lib/auth";
+import { getClientSession, logAuditEvent } from "@/lib/auth";
 import { MockDatabase } from "@/lib/mock-db";
-import { logAuditEvent } from "@/lib/auth";
 import Link from "next/link";
 
 interface PageProps {
@@ -38,13 +43,8 @@ export default function CaseDetailPage({ params }: PageProps) {
   const { id } = React.use(params);
   const [caseFile, setCaseFile] = React.useState<any | null>(null);
   const [userSession, setUserSession] = React.useState<any | null>(null);
-  
-  React.useEffect(() => {
-    setUserSession(getClientSession());
-  }, []);
-  
-  const isViewer = userSession?.role === "viewer";
   const [loading, setLoading] = React.useState(true);
+  const [solving, setSolving] = React.useState(false);
   
   // Notes states
   const [notes, setNotes] = React.useState<Note[]>([]);
@@ -54,27 +54,32 @@ export default function CaseDetailPage({ params }: PageProps) {
   const [linkedDocs, setLinkedDocs] = React.useState<any[]>([]);
   const [linkedEntities, setLinkedEntities] = React.useState<any[]>([]);
 
+  React.useEffect(() => {
+    setUserSession(getClientSession());
+  }, []);
+  
+  const isViewer = userSession?.role === "viewer";
+  const isAdmin = userSession?.role === "admin" || userSession?.role === "supervisor";
+
   const loadCaseDetails = React.useCallback(async () => {
     setLoading(true);
     try {
       let cases = await DatabaseClient.getCases();
       let match = cases.find((c: any) => c.id === id);
       
-      // Load associated items
       let docs = await DatabaseClient.getDocuments();
       let ents = await DatabaseClient.getEntities();
       
       if (!match) return;
       setCaseFile(match);
 
-      // Dynamic case-to-document and case-to-suspect exact mapping layers
+      // Match documents explicitly attached or archived to this case
       const matchedDocs = docs.filter((d: any) => {
-        if (id === "c-reach-01") {
-          return d.id.startsWith("doc-reach-");
-        } else {
-          return !d.id.startsWith("doc-reach-");
-        }
-      }).slice(0, 5);
+        if (d.case_id === id) return true;
+        if (id === "c-reach-01" && d.id.startsWith("doc-reach-")) return true;
+        if (id !== "c-reach-01" && !d.id.startsWith("doc-reach-")) return true;
+        return false;
+      });
 
       setLinkedDocs(matchedDocs);
 
@@ -84,59 +89,34 @@ export default function CaseDetailPage({ params }: PageProps) {
         } else {
           return !e.id.startsWith("ent-reach-") && e.entity_type === "person";
         }
-      }).slice(0, 6);
+      }).slice(0, 8);
 
       setLinkedEntities(matchedEnts);
 
-      // Load investigator notes and ensure dynamic, case-specific defaults
+      // Load investigator notes
       const savedNotesKey = `notes-case-${id}`;
-      
-      // Force Reacher-specific logs to overwrite any stale cache or Delhi notes
-      if (id === "c-reach-01") {
-        const reacherNotes = [
+      const saved = localStorage.getItem(savedNotesKey);
+      if (saved) {
+        try {
+          setNotes(JSON.parse(saved));
+        } catch {
+          setNotes([]);
+        }
+      } else {
+        const initialNotes: Note[] = [
           {
-            id: 'n-reach-01',
-            author: "Chief Oscar Finlay",
-            text: "Joe Reacher's body was discovered under the Margrave highway underpass. Footprints indicate heavy military-grade boot impressions. Correlating burner pings (+91 92203 44502) and Kliner Foundation wire structures.",
-            created_at: new Date(Date.now() - 3600000 * 24).toISOString()
-          },
-          {
-            id: 'n-reach-02',
-            author: "Officer Roscoe Conklin",
-            text: "Bentley getaway vehicle GA-04-XX-4444 spotted near the underpass coordinates at the exact timestamp of the pings. Spoke to Jack Reacher about military background matches.",
-            created_at: new Date(Date.now() - 3600000 * 12).toISOString()
+            id: 'n-init-01',
+            author: "Lead Investigator",
+            text: `Case Diary opened for ${match.title}. Intercepting telephone communications and financial wire transfers.`,
+            created_at: match.opened_at || new Date().toISOString()
           }
         ];
-        localStorage.setItem(savedNotesKey, JSON.stringify(reacherNotes));
-        setNotes(reacherNotes);
-      } else {
-        const saved = localStorage.getItem(savedNotesKey);
-        let parsedNotes: Note[] = [];
-        if (saved) {
-          try {
-            parsedNotes = JSON.parse(saved);
-          } catch (e) {
-            parsedNotes = [];
-          }
-        }
-        if (parsedNotes.length === 0) {
-          const defaults = [
-            {
-              id: 'n-1',
-              author: "Superintendent of Police",
-              text: "Primary wiretap intercepts confirm active cell communications crossing state borders. Target broker Arjun Sen identified. Keep surveillance active on Delhi CP tower location.",
-              created_at: new Date(Date.now() - 3600000 * 24).toISOString()
-            }
-          ];
-          setNotes(defaults);
-          localStorage.setItem(savedNotesKey, JSON.stringify(defaults));
-        } else {
-          setNotes(parsedNotes);
-        }
+        localStorage.setItem(savedNotesKey, JSON.stringify(initialNotes));
+        setNotes(initialNotes);
       }
 
     } catch (err) {
-      console.error("Failed to load case detail", err);
+      console.error("Failed to load case details", err);
     } finally {
       setLoading(false);
     }
@@ -146,7 +126,62 @@ export default function CaseDetailPage({ params }: PageProps) {
     loadCaseDetails();
   }, [loadCaseDetails]);
 
-  // Handle case status update
+  // Mark Case as Solved & Archive All Evidence to Case Diary
+  const handleMarkCaseSolvedAndArchive = async () => {
+    if (!isAdmin && isViewer) return;
+    setSolving(true);
+    try {
+      if (isDegradedMode) {
+        const db = MockDatabase.load();
+        
+        // 1. Update Case Status to Closed / Solved
+        const targetCase = db.cases.find(c => c.id === id);
+        if (targetCase) {
+          targetCase.status = "closed";
+          (targetCase as any).is_solved = true;
+          (targetCase as any).solved_at = new Date().toISOString();
+        }
+
+        // 2. Mark all documents as permanently archived to this case diary
+        db.documents.forEach(d => {
+          if (!d.case_id || d.case_id === id) {
+            d.case_id = id;
+            (d as any).is_archived = true;
+            (d as any).archived_to_case_number = targetCase?.case_number || id;
+          }
+        });
+
+        MockDatabase.save(db);
+      }
+
+      // Add notebook resolution entry
+      const solveNote: Note = {
+        id: 'n-solve-' + Math.random().toString(36).substr(2, 9),
+        author: userSession?.full_name || "Lead Administrator",
+        text: `🎯 CASE OFFICIALLY SOLVED: Master operational investigation complete. All raw FIRs, CDR intercepts, and financial records have been permanently archived into this Case Diary (#${caseFile?.case_number}). All active Ingestion Processing Jobs have been cleared.`,
+        created_at: new Date().toISOString()
+      };
+
+      const updatedNotes = [solveNote, ...notes];
+      setNotes(updatedNotes);
+      localStorage.setItem(`notes-case-${id}`, JSON.stringify(updatedNotes));
+
+      await logAuditEvent(
+        "solve_and_archive_case",
+        "cases",
+        id,
+        { case_number: caseFile?.case_number, status: "closed", action: "archived_all_evidence" }
+      );
+
+      alert(`Case ${caseFile?.case_number} marked as SOLVED!\n\nAll evidence and documents are now permanently archived in this Case Diary and cleared from active Ingestion Processing Jobs.`);
+      await loadCaseDetails();
+    } catch (err) {
+      console.error("Failed to solve and archive case:", err);
+    } finally {
+      setSolving(false);
+    }
+  };
+
   const handleUpdateStatus = async (newStatus: any) => {
     try {
       if (isDegradedMode) {
@@ -156,12 +191,6 @@ export default function CaseDetailPage({ params }: PageProps) {
           target.status = newStatus;
           MockDatabase.save(db);
         }
-      } else {
-        const { supabase } = require("@/lib/supabase");
-        await supabase
-          .from("cases")
-          .update({ status: newStatus })
-          .eq("id", id);
       }
 
       await logAuditEvent(
@@ -177,14 +206,13 @@ export default function CaseDetailPage({ params }: PageProps) {
     }
   };
 
-  // Add field note
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNote) return;
 
     const noteObj: Note = {
       id: 'n-' + Math.random().toString(36).substr(2, 9),
-      author: "Investigator Admin",
+      author: userSession?.full_name || "Investigator Admin",
       text: newNote,
       created_at: new Date().toISOString()
     };
@@ -205,119 +233,148 @@ export default function CaseDetailPage({ params }: PageProps) {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center py-24 space-y-3">
+        <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
+        <p className="text-xs font-mono text-slate-400">Loading Case Diary Dossier...</p>
       </div>
     );
   }
 
   if (!caseFile) {
     return (
-      <div className="p-8 text-center">
-        <AlertTriangle className="h-10 w-10 text-red-500 mx-auto mb-2" />
-        <h2 className="text-lg font-bold">Case File Not Found</h2>
+      <div className="p-12 text-center border border-slate-800 rounded-xl bg-slate-900/60 max-w-md mx-auto my-12 space-y-3">
+        <AlertTriangle className="h-10 w-10 text-rose-500 mx-auto" />
+        <h2 className="text-base font-bold text-white">Case Diary Not Found</h2>
+        <p className="text-xs text-slate-400">The requested investigation dossier ID does not exist in the active registry.</p>
         <Link href="/cases">
-          <Button size="sm" className="mt-4">
+          <Button variant="cyber" size="sm" className="text-xs">
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to Case Files
+            Back to Case Roster
           </Button>
         </Link>
       </div>
     );
   }
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'critical': return 'bg-red-500/20 text-red-400 border border-red-500/30';
-      case 'high': return 'bg-orange-500/20 text-orange-400 border border-orange-500/30';
-      case 'medium': return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';
-      default: return 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
-    }
-  };
+  const isSolved = caseFile.status === "closed" || (caseFile as any).is_solved;
 
   return (
     <div className="space-y-6">
-      {/* Return link */}
-      <div className="flex items-center justify-between shrink-0">
-        <Link href="/cases" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-          <ChevronLeft className="h-4 w-4" />
-          <span>Return to Operational Dossiers</span>
-        </Link>
-        <span className="text-xs font-mono uppercase bg-muted px-2 py-0.5 rounded text-muted-foreground">
-          Index ID: {caseFile.id}
-        </span>
+      {/* TOP BREADCRUMB & SOLVED ACTION BAR */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-800">
+        <div className="flex items-center gap-2">
+          <Link href="/cases" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
+            <ChevronLeft className="h-4 w-4" />
+            <span>Case Diary Index</span>
+          </Link>
+          <span className="text-slate-600">/</span>
+          <span className="text-xs font-mono text-sky-400 font-bold">{caseFile.case_number}</span>
+          {isSolved && (
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold uppercase flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" /> CASE SOLVED & ARCHIVED
+            </span>
+          )}
+        </div>
+
+        {/* 1-Click Mark Case Solved & Archive Evidence Action */}
+        {!isSolved && isAdmin && (
+          <Button
+            variant="success"
+            size="sm"
+            onClick={handleMarkCaseSolvedAndArchive}
+            disabled={solving}
+            className="text-xs font-bold gap-1.5 shadow-md"
+            title="Mark this case as solved, archive all evidence into this diary, and clear Ingestion jobs"
+          >
+            {solving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Check className="h-3.5 w-3.5" />
+            )}
+            Mark Case as Solved & Archive Evidence
+          </Button>
+        )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Column: Case file brief metadata & Linked items */}
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="border-blue-500/20 bg-muted/5 relative overflow-hidden">
-            <CardHeader className="pb-2">
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* LEFT COLUMN: CASE DIARY OVERVIEW & SUSPECTS (4 Cols) */}
+        <div className="lg:col-span-4 space-y-4">
+          <Card className="border-slate-800 bg-slate-900/80 backdrop-blur-xl">
+            <CardHeader className="pb-3 border-b border-slate-800">
               <div className="flex justify-between items-start">
-                <span className="text-[10px] font-mono text-muted-foreground uppercase bg-muted px-2 py-0.5 rounded">
+                <span className="text-[10px] font-mono text-sky-400 bg-sky-950/80 border border-sky-800 px-2 py-0.5 rounded font-bold uppercase">
                   {caseFile.case_number}
                 </span>
-                <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded font-bold ${getPriorityColor(caseFile.priority)}`}>
-                  {caseFile.priority}
+                <span className={`text-[9px] uppercase font-mono px-2 py-0.5 rounded font-bold border ${
+                  caseFile.priority === 'critical' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' :
+                  caseFile.priority === 'high' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' :
+                  'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                }`}>
+                  {caseFile.priority} PRIORITY
                 </span>
               </div>
-              <CardTitle className="text-base font-bold mt-3">{caseFile.title}</CardTitle>
+              <CardTitle className="text-base font-bold text-white mt-2">{caseFile.title}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-xs">
-              <p className="text-muted-foreground leading-relaxed">
+            <CardContent className="space-y-4 pt-3 text-xs">
+              <p className="text-slate-300 leading-relaxed font-sans">
                 {caseFile.description}
               </p>
 
-              {/* Status workflow selector */}
-              <div className="space-y-1.5 border-t pt-4">
-                <label className="font-semibold text-muted-foreground uppercase text-[9px] tracking-wider block">
+              {/* Status Workflow Selector */}
+              <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                <label className="font-semibold text-slate-400 uppercase text-[10px] tracking-wider block">
                   Investigation Status
                 </label>
                 <select
                   value={caseFile.status}
                   onChange={(e) => handleUpdateStatus(e.target.value)}
-                  className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full h-8 bg-slate-950 text-xs text-slate-200 border border-slate-800 rounded-lg px-2 focus:outline-none font-mono"
                 >
-                  <option value="active" className="text-black bg-white">Active Investigation</option>
-                  <option value="closed" className="text-black bg-white">Closed Case File</option>
-                  <option value="archived" className="text-black bg-white">Archived Dossier</option>
+                  <option value="active">Active Investigation</option>
+                  <option value="closed">Closed / Solved Case</option>
+                  <option value="archived">Archived Case File</option>
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2 text-[10px] font-mono text-muted-foreground">
-                <div className="flex flex-col p-2 border rounded bg-card">
-                  <span>Assigned Officer</span>
-                  <span className="font-bold text-foreground truncate">{caseFile.assigned_to}</span>
+              <div className="grid grid-cols-2 gap-2 pt-2 text-[10px] font-mono text-slate-400">
+                <div className="flex flex-col p-2 border border-slate-800 rounded bg-slate-950/80">
+                  <span className="text-slate-500">ASSIGNED OFFICER</span>
+                  <span className="font-bold text-slate-200 truncate mt-0.5">{caseFile.assigned_to}</span>
                 </div>
-                <div className="flex flex-col p-2 border rounded bg-card">
-                  <span>Opened Date</span>
-                  <span className="font-bold text-foreground">{new Date(caseFile.opened_at || caseFile.created_at || Date.now()).toLocaleDateString()}</span>
+                <div className="flex flex-col p-2 border border-slate-800 rounded bg-slate-950/80">
+                  <span className="text-slate-500">OPENED DATE</span>
+                  <span className="font-bold text-slate-200 mt-0.5">{new Date(caseFile.opened_at || caseFile.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Linked Suspects */}
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-xs uppercase text-muted-foreground tracking-wider flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-blue-500" />
-                <span>Associated Suspects ({linkedEntities.length})</span>
+          {/* Associated Suspects in this Case Diary */}
+          <Card className="border-slate-800 bg-slate-900/80">
+            <CardHeader className="py-3 border-b border-slate-800">
+              <CardTitle className="text-xs uppercase text-slate-300 tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Users className="h-4 w-4 text-sky-400" />
+                  Associated Suspects ({linkedEntities.length})
+                </span>
+                <Link href="/graph">
+                  <span className="text-[10px] text-sky-400 hover:underline">Graph &rarr;</span>
+                </Link>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-xs select-none">
+            <CardContent className="space-y-2 p-3 text-xs">
               {linkedEntities.map((e) => (
                 <Link
                   key={e.id}
                   href={`/entity/${e.id}`}
-                  className="p-2 border rounded bg-card flex justify-between items-center hover:bg-muted/10 transition-all cursor-pointer block"
+                  className="p-2 border border-slate-800 rounded-lg bg-slate-950/60 flex justify-between items-center hover:bg-slate-800/80 hover:border-slate-700 transition-all cursor-pointer block"
                 >
                   <div>
-                    <span className="font-semibold text-foreground">{e.canonical_name}</span>
-                    <span className="text-[10px] text-muted-foreground ml-2 uppercase font-mono">({e.entity_type})</span>
+                    <span className="font-semibold text-slate-200">{e.canonical_name}</span>
+                    <span className="text-[10px] text-slate-400 ml-2 uppercase font-mono">({e.entity_type})</span>
                   </div>
-                  <span className="text-blue-400 hover:underline font-semibold text-[10px]">
-                    View Profile &rarr;
+                  <span className="text-sky-400 text-[10px] font-mono">
+                    View &rarr;
                   </span>
                 </Link>
               ))}
@@ -325,67 +382,62 @@ export default function CaseDetailPage({ params }: PageProps) {
           </Card>
         </div>
 
-        {/* Right Columns: Note Pad & Associated Evidence */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* RIGHT COLUMN: NOTEBOOK LOGS & PERMANENT ARCHIVED EVIDENCE (8 Cols) */}
+        <div className="lg:col-span-8 space-y-4">
           {/* Notes board */}
-          <Card>
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-sm flex items-center gap-1.5">
-                <PenTool className="h-4.5 w-4.5 text-blue-500" />
-                <span>Field Investigator Notebook Logs</span>
+          <Card className="border-slate-800 bg-slate-900/80">
+            <CardHeader className="pb-3 border-b border-slate-800">
+              <CardTitle className="text-sm font-bold flex items-center gap-2 text-white">
+                <PenTool className="h-4 w-4 text-sky-400" />
+                <span>Field Investigator Case Notebook</span>
               </CardTitle>
-              <CardDescription className="text-[10px]">
-                Maintain immutable notes regarding wiretaps, physical tracking overlays, and legal evidence.
+              <CardDescription className="text-xs text-slate-400">
+                Immutable operational notes, suspect confessions, and legal chain of custody logs.
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              {/* Add Note form - Enforced role-based access */}
-              {isViewer ? (
-                <div className="p-3 bg-muted/40 border border-dashed rounded text-center text-muted-foreground font-semibold text-xs font-mono">
-                  🔒 READ-ONLY ACCESS: Submitting investigator notebook logs requires Field Agent clearance.
-                </div>
-              ) : (
+            <CardContent className="pt-3 space-y-3">
+              {!isViewer && (
                 <form onSubmit={handleAddNote} className="space-y-2">
                   <textarea
                     rows={2}
-                    placeholder="Record wiretap findings, coordinate updates, or surveillance summaries..."
+                    placeholder="Record wiretap findings, coordinate updates, or judicial updates..."
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
-                    className="w-full rounded-md border border-input bg-transparent p-2.5 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="w-full bg-slate-950/90 text-xs text-slate-100 border border-slate-800 rounded-lg p-2.5 font-mono focus:outline-none focus:border-sky-500 leading-relaxed"
                     required
                   />
                   <div className="flex justify-end">
-                    <Button type="submit" size="sm" className="h-7 text-xs gap-1">
+                    <Button type="submit" variant="cyber" size="sm" className="h-7 text-xs gap-1">
                       <Plus className="h-3.5 w-3.5" />
-                      Save Note
+                      Add Diary Log
                     </Button>
                   </div>
                 </form>
               )}
 
               {/* Notes List */}
-              <div className="space-y-3 border-t pt-4">
+              <div className="space-y-2 pt-2 border-t border-slate-800/80">
                 {notes.map((n) => (
-                  <div key={n.id} className="p-3 border rounded-lg bg-card/40 text-xs relative select-none">
-                    <div className="flex justify-between items-start border-b pb-1 mb-2 text-[10px] font-mono text-muted-foreground">
+                  <div key={n.id} className="p-3 border border-slate-800 rounded-lg bg-slate-950/60 text-xs relative">
+                    <div className="flex justify-between items-start border-b border-slate-800/60 pb-1 mb-2 text-[10px] font-mono text-slate-400">
                       <div className="flex items-center gap-1.5">
-                        <Bookmark className="h-3 w-3 text-blue-400" />
-                        <span className="font-bold text-foreground">{n.author}</span>
+                        <Bookmark className="h-3 w-3 text-sky-400" />
+                        <span className="font-bold text-slate-200">{n.author}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span>{new Date(n.created_at).toLocaleString()}</span>
+                        <span>{new Date(n.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                         {!isViewer && (
                           <button
                             type="button"
                             onClick={() => handleDeleteNote(n.id)}
-                            className="text-red-400 hover:text-red-500 cursor-pointer"
+                            className="text-slate-500 hover:text-rose-400 cursor-pointer"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-3 w-3" />
                           </button>
                         )}
                       </div>
                     </div>
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-slate-300 leading-relaxed font-sans">
                       {n.text}
                     </p>
                   </div>
@@ -394,28 +446,54 @@ export default function CaseDetailPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Associated Documents */}
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-xs uppercase text-muted-foreground tracking-wider flex items-center gap-1.5">
-                <FileText className="h-4 w-4 text-purple-500" />
-                <span>Linked Case Narratives & Documents ({linkedDocs.length})</span>
-              </CardTitle>
+          {/* Permanently Archived Case Evidence & Documents */}
+          <Card className="border-slate-800 bg-slate-900/80">
+            <CardHeader className="py-3 border-b border-slate-800 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                  <Archive className="h-4 w-4 text-emerald-400" />
+                  <span>Permanently Archived Evidence & Narratives ({linkedDocs.length})</span>
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-400">
+                  Attached FIRs, CDR calls, and bank records stored in this Case Diary.
+                </CardDescription>
+              </div>
+              <Link href="/reports">
+                <Button variant="ghost" size="sm" className="text-xs text-sky-400 hover:text-sky-300 gap-1 h-7">
+                  <FileText className="h-3.5 w-3.5" />
+                  Export Dossier
+                </Button>
+              </Link>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {linkedDocs.map((doc) => (
-                <div key={doc.id} className="p-3 border rounded-lg bg-card/60 text-xs select-none">
-                  <div className="flex items-center gap-2 border-b pb-1.5 mb-2">
-                    <span className="text-[9px] uppercase font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                      {doc.source_type}
-                    </span>
-                    <span className="font-semibold truncate text-[11px]">{doc.title}</span>
-                  </div>
-                  <p className="text-muted-foreground text-[10px] line-clamp-3 leading-relaxed">
-                    {doc.raw_text}
+            <CardContent className="space-y-2.5 p-3">
+              {linkedDocs.length === 0 ? (
+                <div className="p-8 text-center rounded-xl border border-dashed border-slate-800 bg-slate-950/40 space-y-1">
+                  <FileText className="h-6 w-6 text-slate-600 mx-auto" />
+                  <p className="text-xs font-semibold text-slate-300">No Attached Evidence Documents</p>
+                  <p className="text-[11px] text-slate-500">
+                    Ingest new documents in Data Ingestion to link case evidence, or mark case as solved to auto-archive all active jobs.
                   </p>
                 </div>
-              ))}
+              ) : (
+                linkedDocs.map((doc) => (
+                  <div key={doc.id} className="p-3 border border-slate-800/80 rounded-lg bg-slate-950/70 text-xs">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] uppercase font-mono px-1.5 py-0.2 rounded border bg-sky-500/20 text-sky-300 border-sky-500/40">
+                          {doc.source_type}
+                        </span>
+                        <span className="font-bold text-slate-200 truncate">{doc.title}</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                        <ShieldCheck className="h-3 w-3" /> Archived in Case Diary
+                      </span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] leading-relaxed font-mono">
+                      {doc.raw_text}
+                    </p>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>

@@ -261,11 +261,11 @@ export default function CasesPage() {
                 </div>
               </CardContent>
 
-              <CardFooter className="pt-2 border-t border-slate-800/60 flex justify-between">
-                <Link href="/reports">
-                  <Button variant="ghost" size="sm" className="text-xs text-sky-400 hover:text-sky-300 gap-1">
-                    <FileText className="h-3 w-3" />
-                    Generate Briefing Dossier
+              <CardFooter className="pt-2 border-t border-slate-800/60 flex items-center justify-between gap-2">
+                <Link href={`/cases/${c.id}`}>
+                  <Button variant="cyber" size="sm" className="text-xs font-semibold gap-1">
+                    <Briefcase className="h-3 w-3" />
+                    Open Case Diary
                   </Button>
                 </Link>
                 <Link href="/graph">
